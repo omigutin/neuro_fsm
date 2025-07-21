@@ -5,11 +5,8 @@ __all__ = ['State', 'StateOrIdType', 'StateTuple', 'StateDict', 'StateTupleTuple
 from dataclasses import dataclass
 from typing import TypeAlias, Union, Optional
 
-from .state_meta import StateMeta
-from .state_params import StateParams
 
-
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class State:
     """
         Класс объединяет описание состояния (StateMeta) и поведенческие параметры (StateParams).
@@ -19,54 +16,23 @@ class State:
         — логику обработки (сбросы, прерывания и т.д.).
     """
 
-    meta: StateMeta
-    params: StateParams
+    cls_id: int
+    name: str
+    full_name: str
+    is_fiction: bool
+    alias_of: Optional[int] = None
+    stable_min_lim: int = 0.0
+    is_resettable: bool = True
+    is_resetter: bool = False
+    is_breaker: bool = False
+    threshold: float = 0.0
 
-    @property
-    def name(self) -> str:
-        """ Уникальное строковое имя состояния (Enum.name). """
-        return self.meta.name
-
-    @property
-    def cls_id(self) -> int:
-        """ Числовой идентификатор состояния. """
-        return self.meta.cls_id
-
-    @property
-    def full_name(self) -> str:
-        """ Человеко читаемое описание состояния (для интерфейсов и логов). """
-        return self.meta.full_name
-
-    @property
-    def is_fiction(self) -> bool:
-        return self.meta.fiction
-
-    @property
-    def is_stability_enabled(self) -> bool:
-        return self.params.is_stability_enabled
-
-    @property
-    def is_resettable(self) -> bool:
-        """ Можно ли сбрасывать это состояние вручную. """
-        return self.params.is_resettable
-
-    @property
-    def is_resetter(self) -> bool:
-        """ Возвращает True, если состояние инициирует сброс других состояний. """
-        return self.params.is_resetter
-
-    @property
-    def is_breaker(self) -> bool:
-        """ Возвращает True, если состояние завершает текущую обработку. """
-        return self.params.is_breaker
-
-    @property
-    def stable_min_lim(self) -> Optional[int]:
-        return self.params.stable_min_lim
-
-    @property
-    def threshold(self) -> Optional[float]:
-        return self.params.threshold
+    def get_base_cls_id(self) -> int:
+        """
+            Возвращает базовый cls_id для этого состояния.
+            Если состояние — алиас, возвращает cls_id оригинального состояния.
+        """
+        return self.alias_of if self.alias_of is not None else self.cls_id
 
     def to_dict(self) -> dict[str, str | int | dict[str, str | int | float | None]]:
         """
@@ -78,8 +44,13 @@ class State:
             "name": self.name,
             "cls_id": self.cls_id,
             "full_name": self.full_name,
-            "fiction": self.is_fiction,
-            "params": self.params.to_dict()
+            "is_fiction": self.is_fiction,
+            "alias_of": self.alias_of,
+            "stable_min_lim": self.stable_min_lim,
+            "is_resettable": self.is_resettable,
+            "is_resetter": self.is_resetter,
+            "is_breaker": self.is_breaker,
+            "threshold": self.threshold
         }
 
     def describe(self) -> str:
@@ -103,10 +74,6 @@ class State:
     def __str__(self) -> str:
         """ Краткое строковое представление состояния. """
         return f"<State {self.name} (id={self.cls_id})>"
-
-    def __repr__(self) -> str:
-        """ Подробное строковое представление для отладки. """
-        return f"State(name={self.name!r}, cls_id={self.cls_id}, full_name={self.full_name!r})"
 
 
 StateDict: TypeAlias = dict[int, State]

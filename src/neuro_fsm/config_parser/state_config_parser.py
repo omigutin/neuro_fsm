@@ -22,24 +22,34 @@ class StateConfigParser:
             Returns:
                 StateConfigDict: Словарь состояний cls_id → StateConfig.
         """
-        result: StateConfigDict = {}
+        def _validate_aliases(state_configs: StateConfigDict) -> None:
+            for state in state_configs.values():
+                if state.alias_of is not None and state.alias_of not in state_configs:
+                    raise ValueError(
+                        f"[StateConfigParser] Alias '{state.name}' (cls_id={state.cls_id}) "
+                        f"points to unknown cls_id={state.alias_of}"
+                    )
+
+        stats_configs: StateConfigDict = {}
 
         for item in raw_state_configs:
             if isinstance(item, StateConfig):
-                config = item
+                state_config = item
             elif isinstance(item, dict):
-                config = StateConfigParser._from_dict(item)
+                state_config = StateConfigParser._from_dict(item)
             elif isinstance(item, Enum) or (hasattr(item, "cls_id") and hasattr(item, "name")):
-                config = StateConfigParser._from_enum(item)
+                state_config = StateConfigParser._from_enum(item)
             else:
                 raise TypeError(f"[StateConfigParser] Unsupported state config type: {type(item)}")
 
-            if config.cls_id in result:
-                raise ValueError(f"[StateConfigParser] Duplicate cls_id detected: {config.cls_id}")
+            if state_config.cls_id in stats_configs:
+                raise ValueError(f"[StateConfigParser] Duplicate cls_id detected: {state_config.cls_id}")
 
-            result[config.cls_id] = config
+            stats_configs[state_config.cls_id] = state_config
 
-        return result
+        _validate_aliases(stats_configs)
+
+        return stats_configs
 
     @staticmethod
     def build_dict_with_overrides(overrides_raw: Sequence[Any], base_states: StateConfigDict) -> StateConfigDict:
@@ -51,7 +61,8 @@ class StateConfigParser:
         """
         overrides_states = StateConfigParser.build_dict(overrides_raw)
         overrides_states = StateConfigParser._validate_states(overrides_states, base_states)
-        return StateConfigParser._merge_with_base(overrides_states, base_states)
+        overrides_states = StateConfigParser._merge_with_base(overrides_states, base_states)
+        return overrides_states
 
     @staticmethod
     def _from_dict(source: dict[str, Any]) -> StateConfig:
@@ -65,15 +76,16 @@ class StateConfigParser:
                 StateConfig: Объект состояния.
         """
         return StateConfig(
-            name=source["name"],
             cls_id=source["cls_id"],
-            full_name=source.get("full_name", ""),
-            fiction=source.get("fiction", False),
-            stable_min_lim=source.get("stable_min_lim"),
-            resettable=source.get("resettable", False),
-            reset_trigger=source.get("reset_trigger", False),
-            break_trigger=source.get("break_trigger", False),
-            threshold=source.get("threshold"),
+            name=source["name"],
+            full_name=source.get("full_name", None),
+            fiction=source.get("fiction", None),
+            alias_of=source.get("alias_of", None),
+            stable_min_lim=source.get("stable_min_lim", None),
+            resettable=source.get("resettable", None),
+            reset_trigger=source.get("reset_trigger", None),
+            break_trigger=source.get("break_trigger", None),
+            threshold=source.get("threshold", None),
         )
 
     @staticmethod
@@ -87,14 +99,15 @@ class StateConfigParser:
         """
         obj = source.value if isinstance(source, Enum) else source
         return StateConfig(
-            name=getattr(obj, "name"),
             cls_id=getattr(obj, "cls_id"),
-            full_name=getattr(obj, "full_name", ""),
-            fiction=getattr(obj, "fiction", False),
+            name=getattr(obj, "name"),
+            full_name=getattr(obj, "full_name", None),
+            fiction=getattr(obj, "fiction", None),
+            alias_of=getattr(obj, "alias_of", None),
             stable_min_lim=getattr(obj, "stable_min_lim", None),
-            resettable=getattr(obj, "resettable", False),
-            reset_trigger=getattr(obj, "reset_trigger", False),
-            break_trigger=getattr(obj, "break_trigger", False),
+            resettable=getattr(obj, "resettable", None),
+            reset_trigger=getattr(obj, "reset_trigger", None),
+            break_trigger=getattr(obj, "break_trigger", None),
             threshold=getattr(obj, "threshold", None),
         )
 
@@ -114,12 +127,6 @@ class StateConfigParser:
                     f"[StateConfigParser] Skipping override for unknown state id={cls_id}, name='{override_state.name}'"
                 )
                 continue
-            if base_state.name != override_state.name:
-                warnings.warn(
-                    f"[StateConfigParser] Skipping override due to name mismatch for cls_id={cls_id}: "
-                    f"override='{override_state.name}', base='{base_state.name}'"
-                )
-                continue
             valid_overrides[cls_id] = override_state
 
         return valid_overrides
@@ -130,18 +137,42 @@ class StateConfigParser:
             Создаёт новый словарь состояний с применёнными override-параметрами.
             При отсутствии параметра в override используется значение из base.
         """
+        def _merge_value(override_val: float | None, base_val: float | None, default: float = 0.0) -> float | None:
+            if override_val not in (None, default):
+                return override_val
+            if base_val not in (None, default):
+                return base_val
+            return None
+
+        def _merge_flag(override: bool | None, base: bool | None, default: bool = False) -> bool:
+            if override is not None:
+                return override
+            if base is not None:
+                return base
+            return default
+
         result = base_states.copy()
+
         for cls_id, os in overrides_states.items():
-            original = result[cls_id]
+            base_state = result[cls_id]
+
+            if base_state.name != os.name:
+                warnings.warn(
+                    f"[StateConfigParser] Base state name='{base_state.name}' "
+                    f"differs from override state name='{os.name}' for cls_id={cls_id}. Using base state name."
+                )
+
             result[cls_id] = StateConfig(
-                cls_id=cls_id,
-                name=os.name,
-                full_name=os.full_name or original.full_name,
-                fiction=os.fiction,
-                stable_min_lim=os.stable_min_lim if os.stable_min_lim is not None else original.stable_min_lim,
-                resettable=os.resettable,
-                reset_trigger=os.reset_trigger,
-                break_trigger=os.break_trigger,
-                threshold=os.threshold if os.threshold is not None else original.threshold,
+                cls_id=base_state.cls_id,
+                name=base_state.name,
+                full_name=os.full_name or base_state.full_name or "",
+                alias_of=os.alias_of or base_state.alias_of,
+                fiction=_merge_flag(os.fiction, base_state.fiction, False),
+                stable_min_lim=_merge_value(os.stable_min_lim, base_state.stable_min_lim, 0.0),
+                resettable=_merge_flag(os.resettable, base_state.resettable, True),
+                reset_trigger=_merge_flag(os.reset_trigger, base_state.reset_trigger, False),
+                break_trigger=_merge_flag(os.break_trigger, base_state.break_trigger, False),
+                threshold=_merge_value(os.threshold, base_state.threshold, 0.0),
             )
+
         return result

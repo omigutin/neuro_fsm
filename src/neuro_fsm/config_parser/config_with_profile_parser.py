@@ -7,7 +7,7 @@ from typing import Optional, ClassVar
 from ..configs import FsmConfig, ProfileConfig
 from ..core.profiles import ProfileSwitcherStrategies
 from .base_config_parser import BaseconfigParser
-from .state_parser import StateConfigParser
+from .state_config_parser import StateConfigParser
 from .config_keys import ConfigKeys
 
 

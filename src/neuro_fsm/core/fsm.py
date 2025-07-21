@@ -5,7 +5,7 @@ __all__ = ['Fsm']
 from typing import Optional, Any
 
 from ..configs import FsmConfig
-from ..parsers import ParserFactory
+from ..config_parser import ParserFactory
 from ..models import StateMachineResult
 from .profiles.profile_manager import StateProfilesManager
 from .history import RawStateHistory

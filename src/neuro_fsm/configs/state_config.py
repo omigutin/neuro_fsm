@@ -17,13 +17,23 @@ class StateConfig:
     """
     cls_id: int
     name: str
-    full_name: str = ""
-    fiction: bool = False
+    full_name: Optional[str] = None
+    fiction: Optional[bool] = None
+    alias_of: Optional[int] = None
     stable_min_lim: Optional[int] = None
-    resettable: bool = False
-    reset_trigger: bool = False
-    break_trigger: bool = False
+    resettable: Optional[bool] = None
+    reset_trigger: Optional[bool] = None
+    break_trigger: Optional[bool] = None
     threshold: Optional[float] = None
+
+    def __post_init__(self):
+        """ Проверяет корректность значений параметров  """
+        if len(self.name) == 0:
+            raise ValueError(f"[{__class__.__name__}] name must not be empty")
+        if self.stable_min_lim is not None and self.stable_min_lim < 0:
+            raise ValueError(f"[{__class__.__name__}] stable_min_lim must be >= 0 or None, got {self.stable_min_lim}")
+        if self.threshold is not None and not (0.0 <= self.threshold <= 1.0):
+            raise ValueError(f"[{__class__.__name__}] threshold must be in range [0.0, 1.0], got {self.threshold}")
 
     def __str__(self) -> str:
         """ Краткое строковое представление состояния. """

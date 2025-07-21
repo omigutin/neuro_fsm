@@ -3,7 +3,7 @@ __all__ = ['FsmManager']
 from typing import Optional, Any
 
 from ..configs import FsmConfig
-from src.neuro_fsm.parsers.parser_factory import ParserFactory
+from src.neuro_fsm.config_parser.parser_factory import ParserFactory
 from ..models import StateTuple
 from .fsm import Fsm
 
