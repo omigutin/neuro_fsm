@@ -1,4 +1,4 @@
-from src.neuro_fsm.config_profiles.state_profiles import StateProfileName
+from src.neuro_fsm.core.profiles import ProfileNames
 from src.neuro_fsm.models import State
 
 
@@ -14,7 +14,7 @@ class StateClsWithProfilesConfig:
 
     STATE_PROFILES = [
         {
-            'name': StateProfileName.DEFAULT,
+            'name': ProfileNames.DEFAULT,
             'expected_sequences': ((1, 2, 3, 1), ('EMPTY', 'FULL', 'EMPTY')),
             'states': {},
             'init_states': 1,

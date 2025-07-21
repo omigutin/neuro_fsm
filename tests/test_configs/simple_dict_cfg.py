@@ -18,3 +18,4 @@ class StateMachineConfig:
     INIT_SATES = NeuroClasses.EMPTY
     # Состояние по-умолчанию, если класс состояния не удалось определить
     DEFAULT_STATES = NeuroClasses.UNKNOWN
+

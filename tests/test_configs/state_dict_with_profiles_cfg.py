@@ -1,10 +1,10 @@
-from src.neuro_fsm.config_profiles.state_profiles import ProfileSwitcherStrategy, StateProfileName
+from src.neuro_fsm.core.profiles import ProfileSwitcherStrategies, ProfileNames
 from tests.test_configs.classes import NeuroClasses
 
 
 class StateDictWithProfilesConfig:
     ENABLE = True
-    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategy.MIXED
+    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.MIXED
     STATES = (
         {'name': NeuroClasses.UNDEFINED.name, 'cls_id': 0, 'full_name': NeuroClasses.UNDEFINED.full_name, 'threshold': 0.5},
         {'name': NeuroClasses.EMPTY.name, 'cls_id': 1, 'full_name': NeuroClasses.EMPTY.full_name},
@@ -14,7 +14,7 @@ class StateDictWithProfilesConfig:
 
     STATE_PROFILES = (
         {
-            'name': StateProfileName.EMPTY_THEN_FILL,
+            'name': ProfileNames.EMPTY_THEN_FILL,
             'expected_sequences': (
                 (NeuroClasses.EMPTY.name, NeuroClasses.FULL.name, NeuroClasses.EMPTY.name),
                 (NeuroClasses.EMPTY.name, NeuroClasses.FULL.name, NeuroClasses.EMPTY.name),

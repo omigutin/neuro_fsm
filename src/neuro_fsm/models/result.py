@@ -3,7 +3,7 @@ __all__ = ['StateMachineResult']
 from dataclasses import dataclass
 from typing import Optional
 
-from .state_meta import StateMeta
+from src.neuro_fsm.core.states.state_meta import StateMeta
 from .types import CountersDict
 
 

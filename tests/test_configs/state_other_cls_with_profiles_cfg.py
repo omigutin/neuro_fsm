@@ -1,10 +1,10 @@
-from src.neuro_fsm.config_profiles.state_profiles import ProfileSwitcherStrategy, StateProfileName
+from src.neuro_fsm.core.profiles import ProfileSwitcherStrategies
 from tests.test_configs.classes import NeuroClasses
 
 
 class StateOtherClsWithProfilesConfig:
     ENABLE = True
-    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategy.BY_MATCH
+    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.BY_MATCH
     STATES = [NeuroClasses.UNDEFINED, NeuroClasses.EMPTY, NeuroClasses.FULL, NeuroClasses.UNKNOWN.name]
 
     STATE_PROFILES = (
