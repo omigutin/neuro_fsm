@@ -4,7 +4,7 @@ from tests.test_configs.classes import NeuroClasses
 
 class StateDictWithProfilesConfig:
     ENABLE = True
-    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.MIXED
+
     STATES = (
         {'name': NeuroClasses.UNDEFINED.name, 'cls_id': 0, 'full_name': NeuroClasses.UNDEFINED.full_name, 'threshold': 0.5},
         {'name': NeuroClasses.EMPTY.name, 'cls_id': 1, 'full_name': NeuroClasses.EMPTY.full_name},
@@ -43,3 +43,7 @@ class StateDictWithProfilesConfig:
             'default_states': (NeuroClasses.UNKNOWN.name,),
         },
     )
+
+    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.MIXED
+
+    DEFAULT_PROFILE = ProfileNames.DEFAULT

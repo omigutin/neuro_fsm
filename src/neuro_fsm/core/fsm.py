@@ -9,7 +9,7 @@ from ..config_parser import ParserFactory
 from ..models import StateMachineResult
 from .profiles.profile_manager import StateProfilesManager
 from .history import RawStateHistory
-from .states import StateMeta, StateTuple, StateOrIdType
+from .states import State, StateTuple, StateOrIdType
 
 
 class Fsm:
@@ -22,7 +22,7 @@ class Fsm:
 
         self._raw_history = RawStateHistory(config.)
         self._profile_manager: StateProfilesManager = StateProfilesManager(config.profiles, config.switcher_strategy)
-        self._cur_state: Optional[StateMeta] = None
+        self._cur_state: Optional[State] = None
         self._result: Optional[StateMachineResult] = None
 
     @property
@@ -34,7 +34,7 @@ class Fsm:
         return self._profile_manager.active_profile.default_states
 
     @property
-    def cur_state(self) -> Optional[StateMeta]:
+    def cur_state(self) -> Optional[State]:
         return self._cur_state if self._cur_state else None
 
     @property
@@ -84,14 +84,14 @@ class Fsm:
         )
         return self._result
 
-    def _handle_reset_trigger(self, state: StateMeta) -> None:
+    def _handle_reset_trigger(self, state: State) -> None:
         if self.is_reset_trigger(state):
             self.reset_resettable_states(reset_cur_state=False)
 
-    def _handle_break_trigger(self, state: StateMeta) -> bool:
+    def _handle_break_trigger(self, state: State) -> bool:
         return self.is_break_trigger(state)
 
-    def _handle_stable_state(self, state: StateMeta) -> None:
+    def _handle_stable_state(self, state: State) -> None:
         if self.is_stable(state):
             self.add_to_history(state)
             self.reset_all_states(reset_cur_state=False)
@@ -120,7 +120,7 @@ class Fsm:
             self._counters.update(state)
             self._cur_state = state
 
-    def is_stable(self, state: Optional[StateMeta] = None) -> bool:
+    def is_stable(self, state: Optional[State] = None) -> bool:
         """ Проверяет, является ли состояние стабильным """
         state = state or self._cur_state
         count = self._counters.get(state)
@@ -143,9 +143,9 @@ class Fsm:
     def is_correct_history(self) -> bool:
         return self._history.is_validity()
 
-    def add_to_history(self, state: Optional[StateMeta] = None) -> None:
+    def add_to_history(self, state: Optional[State] = None) -> None:
         """ Добавляет состояние в историю и скидывает его счётчик, если статус был добавлен """
-        self._history.create_state_machine(state or self._cur_state)
+        self._history.create_fsm(state or self._cur_state)
 
     def clear_history(self) -> None:
         self._history.clear()
@@ -157,13 +157,13 @@ class Fsm:
         self._cur_state = None
         self._history = None
 
-    def _get_state(self, state: StateOrIdType) -> StateMeta:
+    def _get_state(self, state: StateOrIdType) -> State:
         """ Преобразует cls_id → StateMeta или валидирует StateMeta. """
         if isinstance(state, int):
             resolved = self._states.get(state)
             if not resolved:
                 raise ValueError(f"StateMeta with cls_id={state} not found in StateMachine")
             return resolved
-        elif isinstance(state, StateMeta):
+        elif isinstance(state, State):
             return state
         raise TypeError(f"Expected int or StateMeta, got {type(state)}")

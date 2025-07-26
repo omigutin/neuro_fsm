@@ -4,7 +4,7 @@ __all__ = ['FsmConfig']
 
 from typing import Optional, Any
 
-from ..core.profiles import ProfileSwitcherStrategies
+from ..core.profiles import ProfileSwitcherStrategies, ProfileNames
 from .profile_config import ProfileConfigTuple
 from .state_config import StateConfig, StateConfigDict
 
@@ -22,15 +22,17 @@ class FsmConfig:
     def __init__(
             self,
             enable: bool,
-            switcher_strategy: Optional[ProfileSwitcherStrategies],
             states: StateConfigDict,
             profiles: ProfileConfigTuple,
+            switcher_strategy: Optional[ProfileSwitcherStrategies],
+            def_profile: ProfileNames,
             meta: dict[str, Any]
     ) -> None:
         self._enable: bool = enable
         self._states: StateConfigDict = states
         self._profile_configs: ProfileConfigTuple = profiles
         self._switcher_strategy: Optional[ProfileSwitcherStrategies] = switcher_strategy
+        self._def_profile: ProfileNames = def_profile
         self._meta: dict[str, Any] = meta
 
     @property

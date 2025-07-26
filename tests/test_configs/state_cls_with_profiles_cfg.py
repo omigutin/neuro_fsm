@@ -4,7 +4,7 @@ from src.neuro_fsm.models import State
 
 class StateClsWithProfilesConfig:
     ENABLE = True
-    PROFILE_SWITCHER_STRATEGY = None
+
     STATES = (
         State.set(name='UNDEFINED', cls_id=0),
         State.set(name='EMPTY', cls_id=1, threshold=1),
@@ -33,3 +33,6 @@ class StateClsWithProfilesConfig:
             'default_states': ['UNKNOWN', ],
         },
     ]
+
+    PROFILE_SWITCHER_STRATEGY = None
+    DEFAULT_PROFILE = None

@@ -14,42 +14,37 @@ class StateConfigParser:
     """
 
     @staticmethod
-    def build_dict(raw_state_configs: Sequence[Any]) -> StateConfigDict:
+    def build_dict(raw_state_configs: Sequence[Any], *, name_check: bool = True) -> StateConfigDict:
         """
             Массовая загрузка состояний из различных форматов (dict, Enum, StateConfig).
             Args:
                 raw_state_configs (Sequence[dict | Enum | StateConfig]): Список элементов для парсинга.
+                name_check (bool): Требовать наличие name (True — для базовых, False — для overrides).
             Returns:
                 StateConfigDict: Словарь состояний cls_id → StateConfig.
         """
-        def _validate_aliases(state_configs: StateConfigDict) -> None:
-            for state in state_configs.values():
-                if state.alias_of is not None and state.alias_of not in state_configs:
-                    raise ValueError(
-                        f"[StateConfigParser] Alias '{state.name}' (cls_id={state.cls_id}) "
-                        f"points to unknown cls_id={state.alias_of}"
-                    )
-
-        stats_configs: StateConfigDict = {}
+        state_configs: StateConfigDict = {}
 
         for item in raw_state_configs:
             if isinstance(item, StateConfig):
-                state_config = item
+                config = item
             elif isinstance(item, dict):
-                state_config = StateConfigParser._from_dict(item)
+                config = StateConfigParser._from_dict(item)
             elif isinstance(item, Enum) or (hasattr(item, "cls_id") and hasattr(item, "name")):
-                state_config = StateConfigParser._from_enum(item)
+                config = StateConfigParser._from_enum(item)
             else:
                 raise TypeError(f"[StateConfigParser] Unsupported state config type: {type(item)}")
 
-            if state_config.cls_id in stats_configs:
-                raise ValueError(f"[StateConfigParser] Duplicate cls_id detected: {state_config.cls_id}")
+            if config.cls_id in state_configs:
+                raise ValueError(f"[StateConfigParser] Duplicate cls_id detected: {config.cls_id}")
 
-            stats_configs[state_config.cls_id] = state_config
+            if name_check and not config.name:
+                raise ValueError(f"[StateConfigParser] Missing required 'name' for cls_id={config.cls_id}")
 
-        _validate_aliases(stats_configs)
+            state_configs[config.cls_id] = config
 
-        return stats_configs
+        StateConfigParser._validate_aliases(state_configs)
+        return state_configs
 
     @staticmethod
     def build_dict_with_overrides(overrides_raw: Sequence[Any], base_states: StateConfigDict) -> StateConfigDict:
@@ -59,10 +54,34 @@ class StateConfigParser:
             - Проверяет наличие таких состояний в базовом словаре
             - Мержит параметры, не заменяя cls_id / name
         """
-        overrides_states = StateConfigParser.build_dict(overrides_raw)
+        overrides_states = StateConfigParser.build_dict(overrides_raw, name_check=False)
         overrides_states = StateConfigParser._validate_states(overrides_states, base_states)
         overrides_states = StateConfigParser._merge_with_base(overrides_states, base_states)
         return overrides_states
+
+    @staticmethod
+    def _validate_aliases(state_configs: StateConfigDict) -> None:
+        """
+            Проверяет корректность всех alias_of:
+            - Ссылается на существующий cls_id
+            - Не является вложенным alias → alias
+        """
+        for config in state_configs.values():
+            if config.alias_of is None:
+                continue
+
+            base = state_configs.get(config.alias_of)
+            if base is None:
+                raise ValueError(
+                    f"[StateConfigParser] Alias '{config.name}' (cls_id={config.cls_id}) "
+                    f"points to unknown cls_id={config.alias_of}"
+                )
+
+            if base.alias_of is not None:
+                raise ValueError(
+                    f"[StateConfigParser] Alias '{config.name}' (cls_id={config.cls_id}) "
+                    f"points to another alias (cls_id={base.cls_id}). Nested aliases are not allowed."
+                )
 
     @staticmethod
     def _from_dict(source: dict[str, Any]) -> StateConfig:

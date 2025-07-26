@@ -31,7 +31,7 @@ class FsmManager:
         if self._config is None:
             raise ValueError(f"Config for state machine must be defined.")
 
-    def create_state_machine(self, raw_config: Optional[Any] = None) -> Fsm:
+    def create_fsm(self, raw_config: Optional[Any] = None) -> Fsm:
         """
             Создаёт новую машину состояний и возвращает её.
             Args:

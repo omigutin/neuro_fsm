@@ -6,6 +6,7 @@ from typing import Any
 from ..configs import FsmConfig
 from .config_with_profile_parser import ConfigWithProfileParser
 from .simple_config_parser import SimpleConfigParser
+from .parsing_utils import normalize_keys
 
 
 class ParserFactory:
@@ -41,9 +42,4 @@ class ParserFactory:
             config = vars(raw_config)
         else:
             raise TypeError(f"Unsupported config type: {type(raw_config)}")
-        return cls._normalize_keys(config)
-
-    @staticmethod
-    def _normalize_keys(config: dict[str, Any]) -> dict[str, Any]:
-        """ Преобразует все ключи словаря к верхнему регистру. Не затрагивает вложенные словари. """
-        return {k.upper(): v for k, v in config.items()}
+        return normalize_keys(config)
