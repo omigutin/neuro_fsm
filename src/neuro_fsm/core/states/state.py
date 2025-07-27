@@ -18,8 +18,8 @@ class State:
 
     cls_id: int
     name: str
-    full_name: str
-    is_fiction: bool
+    full_name: str = ""
+    is_fiction: bool = False
     alias_of: Optional[int] = None
     stable_min_lim: int = 0.0
     is_resettable: bool = True

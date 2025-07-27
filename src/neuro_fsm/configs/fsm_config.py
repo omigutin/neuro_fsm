@@ -22,14 +22,14 @@ class FsmConfig:
     def __init__(
             self,
             enable: bool,
-            states: StateConfigDict,
+            state_configs: StateConfigDict,
             profiles: ProfileConfigTuple,
             switcher_strategy: Optional[ProfileSwitcherStrategies],
             def_profile: ProfileNames,
             meta: dict[str, Any]
     ) -> None:
         self._enable: bool = enable
-        self._states: StateConfigDict = states
+        self._state_configs: StateConfigDict = state_configs
         self._profile_configs: ProfileConfigTuple = profiles
         self._switcher_strategy: Optional[ProfileSwitcherStrategies] = switcher_strategy
         self._def_profile: ProfileNames = def_profile
@@ -43,7 +43,7 @@ class FsmConfig:
     @property
     def states(self) -> StateConfigDict:
         """ Словарь доступных состояний. """
-        return self._states
+        return self._state_configs
 
     @property
     def profile_configs(self) -> ProfileConfigTuple:
@@ -52,6 +52,10 @@ class FsmConfig:
     @property
     def switcher_strategy(self) -> ProfileSwitcherStrategies:
         return self._switcher_strategy if self._switcher_strategy else ProfileSwitcherStrategies.MIXED
+
+    @property
+    def def_profile(self) -> ProfileNames:
+        return self._def_profile if self._def_profile else ProfileNames.DEFAULT
 
     @property
     def meta(self) -> dict[str, Any]:

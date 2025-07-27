@@ -4,17 +4,16 @@ from abc import ABC
 from collections import deque
 from typing import Deque, Iterator
 
-from src.neuro_fsm.core.profiles import ProfileConfig
-from src.neuro_fsm.models import StateMeta
+from ..states import State
 
 
 class BaseStateHistory(ABC):
     """ Базовый класс истории состояний. """
 
     def __init__(self, max_len: int = 100) -> None:
-        self._states: Deque[StateMeta] = deque(maxlen=max_len)
+        self._states: Deque[State] = deque(maxlen=max_len)
 
-    def add(self, *states: StateMeta) -> None:
+    def add(self, *states: State) -> None:
         """ Добавляет состояние в историю. """
         self._states.extend(states)
 
@@ -25,10 +24,10 @@ class BaseStateHistory(ABC):
     def __len__(self) -> int:
         return len(self._states)
 
-    def __getitem__(self, idx: int) -> StateMeta:
+    def __getitem__(self, idx: int) -> State:
         return self._states[idx]
 
-    def __iter__(self) -> Iterator[StateMeta]:
+    def __iter__(self) -> Iterator[State]:
         return iter(self._states)
 
     def __repr__(self) -> str:

@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 __all__ = ['StableStateCounters']
 
-from src.neuro_fsm.models import StateMeta, CountersDict, StatesDict, StateOrIdType
+from typing import TypeAlias
+
+from ...core.states import StateDict
 
 
 class StableStateCounters:
@@ -9,52 +13,38 @@ class StableStateCounters:
         Работает только с конфигурацией состояний, нужной для логики сброса.
     """
 
-    def __init__(self, state_configs: StatesDict):
-        self._state_configs: StatesDict = state_configs
-        self._counters: CountersDict = {cls_id: 0 for cls_id in state_configs}
+    def __init__(self, states: StateDict):
+        self._counters: CountersDict = {cls_id: 0 for cls_id in states}
 
-    def increment(self, state: StateMeta) -> int:
+    def increment(self, cls_id: int) -> int:
         """ Увеличивает счётчик состояния и возвращает новое значение. """
-        self._counters[state.cls_id] += 1
-        return self._counters[state.cls_id]
+        self._counters[cls_id] += 1
+        return self._counters[cls_id]
 
     def reset_all(self) -> None:
         """ Сбрасывает счётчики всех состояний. """
         for cls_id in self._counters:
-            self._reset(cls_id)
+            self.reset(cls_id)
 
-    def reset_all_except(self, *excluded: StateMeta) -> None:
+    def reset_all_except(self, *cls_ids: int) -> None:
         """ Сбрасывает все счётчики, кроме указанных состояний. """
-        excluded_ids = {s.cls_id for s in excluded}
         for cls_id in self._counters:
-            if cls_id not in excluded_ids:
-                self._reset(cls_id)
+            if cls_id not in cls_ids:
+                self.reset(cls_id)
 
-    def reset_resettable(self) -> None:
-        """ Сбрасывает только resettable-состояния. """
-        for cls_id, config in self._state_configs.items():
-            if config.resettable:
-                self._reset(cls_id)
-
-    def reset_resettable_except(self, *excluded: StateMeta) -> None:
-        """ Сбрасывает resettable-состояния, кроме указанных. """
-        excluded_ids = {s.cls_id for s in excluded}
-        for cls_id, config in self._state_configs.items():
-            if config.resettable and cls_id not in excluded_ids:
-                self._reset(cls_id)
-
-    def get(self, state: StateMeta) -> int:
+    def get(self, cls_id: int) -> int:
         """ Возвращает текущее значение счётчика состояния. """
-        return self._counters.get(state.cls_id, 0)
+        return self._counters.get(cls_id, 0)
 
     def as_dict(self) -> CountersDict:
         """Возвращает копию всех счётчиков."""
         return self._counters.copy()
 
-    def _reset(self, state_or_id: StateOrIdType) -> None:
-        """ Метод сброса счётчика по состоянию или cls_id. """
-        cls_id = state_or_id.cls_id if isinstance(state_or_id, StateMeta) else state_or_id
+    def reset(self, cls_id: int) -> None:
+        """ Метод сброса счётчика cls_id. """
         self._counters[cls_id] = 0
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(counters={self._counters})"
+
+CountersDict: TypeAlias = dict[int, int]

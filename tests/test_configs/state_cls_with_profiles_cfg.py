@@ -1,15 +1,15 @@
+from src.neuro_fsm.configs import StateConfig
 from src.neuro_fsm.core.profiles import ProfileNames
-from src.neuro_fsm.models import State
 
 
 class StateClsWithProfilesConfig:
     ENABLE = True
 
     STATES = (
-        State.set(name='UNDEFINED', cls_id=0),
-        State.set(name='EMPTY', cls_id=1, threshold=1),
-        State.set(name='FULL', cls_id=2, stable_min_lim=6, resettable=False),
-        State.set(name='UNKNOWN', cls_id=3, stable_min_lim=None, full_name="UNKNOWN description")
+        StateConfig(name='UNDEFINED', cls_id=0),
+        StateConfig(name='EMPTY', cls_id=1, threshold=1),
+        StateConfig(name='FULL', cls_id=2, stable_min_lim=6, resettable=False),
+        StateConfig(name='UNKNOWN', cls_id=3, stable_min_lim=None, full_name="UNKNOWN description")
     )
 
     STATE_PROFILES = [

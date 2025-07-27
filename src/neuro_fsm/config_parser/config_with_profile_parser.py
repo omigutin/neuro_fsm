@@ -76,7 +76,7 @@ class ConfigWithProfileParser(BaseconfigParser):
 
         return FsmConfig(
             enable=enable,
-            states=base_state_configs,
+            state_configs=base_state_configs,
             profiles=tuple(profile_configs),
             switcher_strategy=switcher_strategy,
             def_profile=def_profile,

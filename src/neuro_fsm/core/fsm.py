@@ -5,11 +5,11 @@ __all__ = ['Fsm']
 from typing import Optional, Any
 
 from ..configs import FsmConfig
-from ..config_parser import ParserFactory
 from ..models import StateMachineResult
 from .profiles.profile_manager import StateProfilesManager
 from .history import RawStateHistory
-from .states import State, StateTuple, StateOrIdType
+from .states import State, StateFactory, StateDict
+from .profiles.profile import Profile
 
 
 class Fsm:
@@ -17,45 +17,39 @@ class Fsm:
 
     def __init__(self, config: FsmConfig) -> None:
         self._enable: bool = config.enable
-        self._states: StateTuple = ()
-        self._meta: dict[str, Any] = config.meta
-
-        self._raw_history = RawStateHistory(config.)
-        self._profile_manager: StateProfilesManager = StateProfilesManager(config.profiles, config.switcher_strategy)
+        self._states: StateDict = StateFactory.build(config.states)
         self._cur_state: Optional[State] = None
+        self._meta: dict[str, Any] = config.meta
+        self._raw_history = RawStateHistory()
+        self._profile_manager: StateProfilesManager = StateProfilesManager(
+            config.profile_configs,
+            config.switcher_strategy,
+            config.def_profile,
+            self._states
+        )
         self._result: Optional[StateMachineResult] = None
 
     @property
-    def init_states(self) -> StateTuple:
-        return self._profile_manager.active_profile.init_states
+    def active_profile(self) -> Profile:
+        return self._profile_manager.active_profile
 
-    @property
-    def default_states(self) -> StateTuple:
-        return self._profile_manager.active_profile.default_states
+    # @property
+    # def history(self):
+    #     return self.active_profile.history
 
     @property
     def cur_state(self) -> Optional[State]:
-        return self._cur_state if self._cur_state else None
+        return self._cur_state
 
     @property
     def result(self) -> Optional[StateMachineResult]:
         return self._result
 
-    @staticmethod
-    def parse_raw_config(raw_config: Any) -> FsmConfig:
-        """ Запускает фабрику по парсингу любого типа настроек и приводит их к собственному виду """
-        try:
-            config = ParserFactory.parse(raw_config)
-        except Exception as e:
-            raise e
-        else:
-            return config
-
-    def process_state(self, cls_id: StateOrIdType) -> StateMachineResult:
+    def process_state(self, cls_id: int) -> StateMachineResult:
         """
             Обрабатывает новое состояние машины состояний.
             Этапы обработки:
-            1. Получение объекта состояния (`StateMeta`) по его идентификатору.
+            1. Получение объекта состояния (`State`) по его идентификатору.
             2. Если состояние является триггером сброса — сбрасываются счётчики других состояний.
             3. Если состояние является триггером прерывания — возвращается флаг прерывания обработки.
             4. Если состояние стабильно — записывается в историю, остальные счётчики сбрасываются.
@@ -68,102 +62,44 @@ class Fsm:
                     - Первый элемент — `True`, если сработала последовательность и нужно отправить событие.
                     - Второй элемент — `True`, если необходимо прервать обработку (например, отсутствует объект).
         """
-        cur_state = self._get_state(cls_id)
-        self._handle_reset_trigger(cur_state)
-        break_search = self._handle_break_trigger(cur_state)
-        self._handle_stable_state(cur_state)
+        self._cur_state = self._get_state(cls_id)
+        self._add_to_raw_history(self._cur_state)
+        self._handle_reset_trigger()
+        break_search = self._handle_break_trigger()
+        self._handle_stable_state()
         stage_done = self._check_profile_completion()
 
         self._result = StateMachineResult(
             stage_done=stage_done,
-            cur_state=cur_state,
+            state=self.active_profile.get_state(cls_id),
             break_search=break_search,
-            stable_state=self._cur_state if self.is_stable() else None,
-            counters=self._counters.copy(),
-            active_profile=self._active_profile.profile.name if self._active_profile else None,
+            stable_state=self.active_profile.is_stable(),
+            counters=self.active_profile._counters.copy(),
+            active_profile=self.active_profile.name if self.active_profile else None,
         )
         return self._result
 
-    def _handle_reset_trigger(self, state: State) -> None:
-        if self.is_reset_trigger(state):
-            self.reset_resettable_states(reset_cur_state=False)
+    def _get_state(self, cls_id: int) -> State:
+        return self._states[cls_id]
 
-    def _handle_break_trigger(self, state: State) -> bool:
-        return self.is_break_trigger(state)
+    def _handle_reset_trigger(self) -> None:
+        if self.active_profile.is_reset_trigger(self._cur_state.cls_id):
+            self.active_profile.reset_resettable_except(self.cur_state.cls_id)
 
-    def _handle_stable_state(self, state: State) -> None:
-        if self.is_stable(state):
-            self.add_to_history(state)
-            self.reset_all_states(reset_cur_state=False)
+    def _handle_break_trigger(self) -> bool:
+        return self.active_profile.is_break_trigger(self._cur_state.cls_id)
+
+    def _handle_stable_state(self) -> None:
+        if self.active_profile.is_stable(self._cur_state.cls_id):
+            self.active_profile.update(self._cur_state.cls_id)
+            self.active_profile.reset_all_states()
 
     def _check_profile_completion(self) -> bool:
-        if self.is_correct_history():
-            self.reset_all_states()
-            self.clear_history()
+        if self.active_profile.is_expected_seq_valid():
+            self.active_profile.reset_all_states(self.cur_state.cls_id)
             return True
         return False
 
-    def is_reset_trigger(self, state: Optional[StateOrIdType] = None) -> bool:
-        """ Проверяет, является ли состояние триггером для скидывания """
-        state = self._get_state(state)
-        return state.reset_trigger if state else self._cur_state.reset_trigger
-
-    def is_break_trigger(self, state: Optional[StateOrIdType] = None) -> bool:
-        """ Проверяет, является ли состояние триггером для прерывания обработки """
-        state = self._get_state(state)
-        return state.break_trigger if state else self._cur_state.break_trigger
-
-    def set_cur_state(self, state: StateOrIdType):
-        """ Устанавливаем состояние и прибавляем счётчик этого состояния """
-        state = self._get_state(state)
-        if state:
-            self._counters.update(state)
-            self._cur_state = state
-
-    def is_stable(self, state: Optional[State] = None) -> bool:
-        """ Проверяет, является ли состояние стабильным """
-        state = state or self._cur_state
-        count = self._counters.get(state)
-        return state.stable_min_lim == count
-
-    def reset_resettable_states(self, reset_cur_state: bool = True) -> None:
-        """ Скидывает все скидываемые счётчики состояний """
-        if reset_cur_state:
-            self._counters.reset_resettable()
-        else:
-            self._counters.reset_resettable_except(self.cur_state)
-
-    def reset_all_states(self, reset_cur_state: bool = True) -> None:
-        """ Скидывает все счётчики состояний """
-        if reset_cur_state:
-            self._counters.reset_all()
-        else:
-            self._counters.reset_all_except(self.cur_state)
-
-    def is_correct_history(self) -> bool:
-        return self._history.is_validity()
-
-    def add_to_history(self, state: Optional[State] = None) -> None:
+    def _add_to_raw_history(self, state:  State) -> None:
         """ Добавляет состояние в историю и скидывает его счётчик, если статус был добавлен """
-        self._history.create_fsm(state or self._cur_state)
-
-    def clear_history(self) -> None:
-        self._history.clear()
-        self.add_to_history(self._cur_state)
-
-    def destroy(self) -> None:
-        self._config = None
-        self._counters = {}
-        self._cur_state = None
-        self._history = None
-
-    def _get_state(self, state: StateOrIdType) -> State:
-        """ Преобразует cls_id → StateMeta или валидирует StateMeta. """
-        if isinstance(state, int):
-            resolved = self._states.get(state)
-            if not resolved:
-                raise ValueError(f"StateMeta with cls_id={state} not found in StateMachine")
-            return resolved
-        elif isinstance(state, State):
-            return state
-        raise TypeError(f"Expected int or StateMeta, got {type(state)}")
+        self._raw_history.add(state)

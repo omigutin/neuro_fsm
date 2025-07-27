@@ -1,8 +1,8 @@
 __all__ = ['StableStateHistory']
 
 from .base_state_history import BaseStateHistory
-from src.neuro_fsm.models import State, StateTupleTuple
-from src.neuro_fsm.core.profiles import ProfileConfig
+from ..states import StateTupleTuple, State
+from ...configs import ProfileConfig
 
 
 class StableStateHistory(BaseStateHistory):
@@ -11,16 +11,19 @@ class StableStateHistory(BaseStateHistory):
         соответствует ли она одной из ожидаемых последовательностей.
     """
 
-    def __init__(self, config: ProfileConfig, max_len: int = 100) -> None:
+    def __init__(self, expected_sequences: StateTupleTuple, max_len: int = 100) -> None:
         """
             Args:
                 config (ProfileConfig): Конфигурация профиля с init_states и expected_sequences.
                 max_len (int): Максимальная длина истории.
         """
-        super().__init__(config, max_len)
-        self._expected_sequences: StateTupleTuple = config.expected_sequences
+        super().__init__(max_len)
+        self._expected_sequences: StateTupleTuple = expected_sequences
         self._history_min_len: int = min(len(seq) for seq in self._expected_sequences)
-        self._states.extend(config.init_states or [])
+
+    def last(self) -> State | None:
+        """ Возвращает последнее состояние (если есть). """
+        return self._states[-1] if self._states else None
 
     def is_different_from_last(self, *states: State) -> bool:
         """

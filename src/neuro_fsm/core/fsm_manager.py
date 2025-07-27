@@ -2,9 +2,9 @@ __all__ = ['FsmManager']
 
 from typing import Optional, Any
 
+from .states import StateTuple
 from ..configs import FsmConfig
-from src.neuro_fsm.config_parser.parser_factory import ParserFactory
-from ..models import StateTuple
+from ..config_parser.parser_factory import ParserFactory
 from .fsm import Fsm
 
 
@@ -48,11 +48,6 @@ class FsmManager:
     def enable(self) -> bool:
         """ True, если включено использование машины состояний. """
         return self._config.enable if self._config else False
-
-    @property
-    def states(self) -> StateTuple:
-        """ Список всех возможных состояний (StateClass). """
-        return self._config.states
 
     @staticmethod
     def _parse_raw_config(raw_config: Any) -> FsmConfig:

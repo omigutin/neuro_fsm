@@ -1,15 +1,16 @@
-[project]
+[tool.poetry]
 name = "neuro-fsm"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "migutin83",email = "138582932+migutin83@users.noreply.github.com"}
-]
+authors = ["migutin83 <138582932+migutin83@users.noreply.github.com>"]
 readme = "README.md"
-requires-python = ">=3.8"
-dependencies = [
-]
+packages = [{ include = "neuro_fsm" }]
 
+[tool.poetry.dependencies]
+python = ">=3.8"
+
+[tool.poetry.group.dev.dependencies]
+rich = "^14.1.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

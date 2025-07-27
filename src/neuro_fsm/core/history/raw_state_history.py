@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-__all__ = ['RawStateHistory', 'RawStateItem', 'RawStateSequence']
+__all__ = ['RawStateHistory',
+           # 'RawStateItem',
+           # 'RawStateSequence'
+           ]
 
 from enum import Enum
 from typing import TypeAlias, Sequence, Union
 
 from .base_state_history import BaseStateHistory
-from src.neuro_fsm.core.profiles import ProfileConfig
-from src.neuro_fsm.models import StateMeta
+from ..states import State
 
-RawStateItem: TypeAlias = Union[int, str, Enum, StateMeta]
-RawStateSequence: TypeAlias = Sequence[RawStateItem]
+# RawStateItem: TypeAlias = Union[int, str, Enum, State]
+# RawStateSequence: TypeAlias = Sequence[RawStateItem]
 
 
 class RawStateHistory(BaseStateHistory):
@@ -22,7 +24,7 @@ class RawStateHistory(BaseStateHistory):
     def __init__(self, max_len: int = 100) -> None:
         super().__init__(max_len)
 
-    def last(self) -> StateMeta | None:
+    def last(self) -> State | None:
         """ Возвращает последнее состояние (если есть). """
         return self._states[-1] if self._states else None
 
@@ -39,6 +41,6 @@ class RawStateHistory(BaseStateHistory):
                 break
         return count
 
-    def as_list(self) -> list[StateMeta]:
+    def as_list(self) -> list[State]:
         """ Возвращает список всех состояний. """
         return list(self._states)

@@ -6,12 +6,12 @@ from typing import Any, Type, Optional, TypeVar
 E = TypeVar('E', bound=Enum)
 
 
-def parse_bool(self, value: Any) -> bool:
+def parse_bool(value: Any) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
         return value.strip().lower() in ('1', 'true', 'yes')
-    raise ValueError(f"[{self.__class__.__name__}]  Cannot convert {value!r} to bool")
+    raise ValueError(f"[parse_bool]  Cannot convert {value!r} to bool")
 
 def parse_enum_by_value(
         value: str | None | Enum,
