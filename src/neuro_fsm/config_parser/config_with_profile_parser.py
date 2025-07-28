@@ -21,7 +21,7 @@ class ConfigWithProfileParser(BaseconfigParser):
             "STATES": {...},
             "STATE_PROFILES": [
                 {
-                    "PROFILE_NAME": "default",
+                    "PROFILE_NAME": "single",
                     "STATES": [...], # optional overrides
                     "EXPECTED_SEQUENCES": [[0, 1, 2]],
                     "INIT_STATES": [0],

@@ -25,14 +25,14 @@ class FsmConfig:
             state_configs: StateConfigDict,
             profiles: ProfileConfigTuple,
             switcher_strategy: Optional[ProfileSwitcherStrategies],
-            def_profile: ProfileNames,
+            def_profile: str,
             meta: dict[str, Any]
     ) -> None:
         self._enable: bool = enable
         self._state_configs: StateConfigDict = state_configs
         self._profile_configs: ProfileConfigTuple = profiles
         self._switcher_strategy: Optional[ProfileSwitcherStrategies] = switcher_strategy
-        self._def_profile: ProfileNames = def_profile
+        self._def_profile: str = def_profile
         self._meta: dict[str, Any] = meta
 
     @property
@@ -54,8 +54,8 @@ class FsmConfig:
         return self._switcher_strategy if self._switcher_strategy else ProfileSwitcherStrategies.MIXED
 
     @property
-    def def_profile(self) -> ProfileNames:
-        return self._def_profile if self._def_profile else ProfileNames.DEFAULT
+    def def_profile(self) -> str:
+        return self._def_profile if self._def_profile else ProfileNames.SINGLE
 
     @property
     def meta(self) -> dict[str, Any]:

@@ -1,7 +1,7 @@
-__all__ = ['parse_bool', 'parse_enum_by_value', 'normalize_keys']
+__all__ = ['parse_bool', 'parse_enum_by_value', 'normalize_keys', 'normalize_enum_str']
 
 from enum import Enum
-from typing import Any, Type, Optional, TypeVar
+from typing import Any, Type, Optional, TypeVar, Union
 
 E = TypeVar('E', bound=Enum)
 
@@ -38,3 +38,11 @@ def parse_enum_by_value(
 def normalize_keys(config: dict[str, Any]) -> dict[str, Any]:
     """ Преобразует все ключи словаря к верхнему регистру. Не затрагивает вложенные словари. """
     return {k.upper(): v for k, v in config.items()}
+
+def normalize_enum_str(value: Union[str, Enum], case: str = "lower") -> str:
+    """ Преобразует Enum/str в строку, регистр игнорируем """
+    if isinstance(value, Enum):
+        base = value.value if isinstance(value.value, str) else value.name
+    else:
+        base = str(value)
+    return base.lower() if case.lower() in ("lower", "l") else base.upper()

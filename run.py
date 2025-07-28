@@ -8,10 +8,10 @@ from src.neuro_fsm.core import FsmManager, Fsm
 from tests.test_configs.state_cls_with_profiles_cfg import StateClsWithProfilesConfig
 
 TEST_SEQUENCES = [
-    ([1, 2, 3, 1], "DEFAULT"),  # int-путь
-    ([1, 2, 1], "DEFAULT"),  # str-путь
-    ([1, 2, 3, 1, 0, 0], "DEFAULT"),  # шум после
-    ([0, 1, 2, 3, 1], "DEFAULT"),  # шум до
+    ([1, 2, 3, 1], "SINGLE"),  # int-путь
+    ([1, 2, 1], "SINGLE"),  # str-путь
+    ([1, 2, 3, 1, 0, 0], "SINGLE"),  # шум после
+    ([0, 1, 2, 3, 1], "SINGLE"),  # шум до
     ([1, 3, 2, 1], None),  # неверный порядок
     ([2, 1, 2, 3], None),  # не та последовательность
     ([1, 2], None),  # неполная
@@ -37,7 +37,7 @@ def main():
 
     for i, (seq, expected_profile) in enumerate(TEST_SEQUENCES, 1):
         fsm_manager = FsmManager()
-        fsm_manager.set_config(StateClsWithProfilesConfig())
+        fsm_manager._set_config(StateClsWithProfilesConfig())
         fsm: Fsm = fsm_manager.create_fsm()
 
         for cls in seq:

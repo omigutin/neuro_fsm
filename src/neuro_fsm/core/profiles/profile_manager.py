@@ -18,13 +18,13 @@ class StateProfilesManager:
     def __init__(self,
                  configs: ProfileConfigTuple,
                  switcher_strategy: ProfileSwitcherStrategies,
-                 def_profile: ProfileNames,
+                 def_profile: str,
                  states: StateDict
                  ) -> None:
         self._profiles: ProfileDict = self._build_profiles(configs, states)
         if not self._profiles:
             raise ValueError("No profiles initialized in StateProfilesManager")
-        self._def_profile: ProfileNames = def_profile
+        self._def_profile: str = def_profile
         self._active_profile: Profile = self._profiles[def_profile]
         self._switcher: StateProfilesSwitcher = StateProfilesSwitcher(strategy=switcher_strategy)
 

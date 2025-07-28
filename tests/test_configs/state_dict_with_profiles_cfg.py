@@ -46,4 +46,4 @@ class StateDictWithProfilesConfig:
 
     PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.MIXED
 
-    DEFAULT_PROFILE = ProfileNames.DEFAULT
+    DEFAULT_PROFILE = ProfileNames.SINGLE

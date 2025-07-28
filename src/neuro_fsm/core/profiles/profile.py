@@ -5,7 +5,6 @@ from typing import TypeAlias, Tuple, Dict
 from ..states import State, StateTuple, StateDict
 from ..counters import StableStateCounters
 from ..history import StableStateHistory
-from .profile_names import ProfileNames
 
 class Profile:
     """
@@ -16,14 +15,14 @@ class Profile:
             - Историю состояний
     """
     def __init__(self,
-                name: ProfileNames,
+                name: str,
                 states: StateDict,
                 init_states: StateTuple,
                 default_states: StateTuple,
                 expected_sequences: Tuple[StateTuple, ...],
                 description: str = ""
                 ) -> None:
-        self._name: ProfileNames  = name
+        self._name: str  = name
         self._description: str = description
 
         self._states: StateDict = states  # dict[cls_id, State]
@@ -38,7 +37,7 @@ class Profile:
         return self._states[cls_id]
 
     @property
-    def name(self) -> ProfileNames:
+    def name(self) -> str:
         return self._name
 
     @property
@@ -97,4 +96,4 @@ class Profile:
     def __repr__(self):
         return f"<Profile {self._name} ({len(self._states)} states)>"
 
-ProfileDict: TypeAlias = Dict[ProfileNames, Profile]
+ProfileDict: TypeAlias = Dict[str, Profile]

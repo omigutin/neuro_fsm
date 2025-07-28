@@ -29,7 +29,7 @@ class SimpleConfigParser(BaseconfigParser):
         default_states = self._map_state_list([self._config[ConfigKeys.DEFAULT_STATES]], base_states)
 
         profile = ProfileConfig(
-            name=ProfileNames.DEFAULT,
+            name=ProfileNames.SINGLE,
             states=base_states,
             expected_sequences=expected_sequences,
             init_states=init_states,

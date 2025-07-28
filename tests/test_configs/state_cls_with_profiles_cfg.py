@@ -14,7 +14,7 @@ class StateClsWithProfilesConfig:
 
     STATE_PROFILES = [
         {
-            'name': ProfileNames.DEFAULT,
+            'name': ProfileNames.SINGLE,
             'expected_sequences': ((1, 2, 3, 1), ('EMPTY', 'FULL', 'EMPTY')),
             'states': {},
             'init_states': 1,

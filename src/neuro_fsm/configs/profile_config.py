@@ -5,7 +5,6 @@ __all__ = ['ProfileConfig', 'ProfileConfigTuple']
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from ..core.profiles import ProfileNames
 from .state_config import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, StateConfigOrIdType
 
 
@@ -26,7 +25,7 @@ class ProfileConfig:
         Immutable: экземпляры нельзя изменять после создания.
     """
 
-    name: ProfileNames
+    name: str
     states: StateConfigDict
     init_states: StateConfigTuple
     default_states: StateConfigTuple

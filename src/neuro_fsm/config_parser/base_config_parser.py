@@ -3,9 +3,9 @@ __all__ = ['BaseconfigParser']
 from abc import ABC
 from typing import Any, ClassVar
 
-from .parsing_utils import parse_enum_by_value
 from ..configs import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, ProfileConfig
 from ..core.profiles import ProfileNames, ProfileSwitcherStrategies
+from .parsing_utils import parse_enum_by_value
 from .config_keys import ConfigKeys
 
 
@@ -32,8 +32,11 @@ class BaseconfigParser(ABC):
                 raise TypeError(f"[{self.__class__.__name__}] Field '{key}' must be of type {expected_types}")
 
     @staticmethod
-    def _parse_profile_name(value: str) -> ProfileNames:
-        return ProfileNames(value)
+    def _parse_profile_name(name: ProfileNames | str) -> str:
+        try:
+            return ProfileNames[name.upper()].value
+        except KeyError:
+            return name
 
     @staticmethod
     def _parse_switcher_strategy(value: str | None | ProfileSwitcherStrategies) -> ProfileSwitcherStrategies:
@@ -41,12 +44,12 @@ class BaseconfigParser(ABC):
         return strategy if strategy else ProfileSwitcherStrategies.MIXED
 
     @staticmethod
-    def _parse_default_profile(value: str | None | ProfileNames, profile_configs: list[ProfileConfig]) -> ProfileNames:
+    def _parse_default_profile(name: str | None | ProfileNames, profile_configs: list[ProfileConfig]) -> ProfileNames:
         """ Возвращает название профиля по логике выбора default_profile. """
         if not profile_configs:
-            return ProfileNames.DEFAULT
-        def_profile = parse_enum_by_value(value, ProfileNames, [p.name for p in profile_configs])
-        return def_profile if def_profile else ProfileNames.DEFAULT
+            return ProfileNames.SINGLE
+        def_profile = parse_enum_by_value(name, ProfileNames, [p.name for p in profile_configs])
+        return def_profile if def_profile else ProfileNames.SINGLE
 
     @staticmethod
     def _map_sequence(seq_list: list[list[StateConfig]], state_dict: StateConfigDict) -> StateConfigTupleTuple:
