@@ -30,18 +30,18 @@ class StateConfig:
         """ Проверяет корректность значений параметров  """
         if len(self.name) == 0:
             raise ValueError(f"[{__class__.__name__}] name must not be empty")
-        if self.stable_min_lim is not None and self.stable_min_lim < 0:
+        if self.stable_min_lim is not None and self.stable_min_lim < -1:
             raise ValueError(f"[{__class__.__name__}] stable_min_lim must be >= 0 or None, got {self.stable_min_lim}")
         if self.threshold is not None and not (0.0 <= self.threshold <= 1.0):
             raise ValueError(f"[{__class__.__name__}] threshold must be in range [0.0, 1.0], got {self.threshold}")
 
     def __str__(self) -> str:
         """ Краткое строковое представление состояния. """
-        return f"<State {self.name} (id={self.cls_id})>"
+        return f"<StateConfig {self.name} (id={self.cls_id})>"
 
     def __repr__(self) -> str:
         """ Подробное строковое представление для отладки. """
-        return f"State(name={self.name!r}, cls_id={self.cls_id}, full_name={self.full_name!r})"
+        return f"StateConfig (name={self.name!r}, cls_id={self.cls_id}, full_name={self.full_name!r})"
 
 
 StateConfigOrIdType: TypeAlias = Union[StateConfig, int]

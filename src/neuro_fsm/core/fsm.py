@@ -4,9 +4,8 @@ __all__ = ['Fsm']
 
 from typing import Optional, Any
 
-from ..configs import FsmConfig
-from ..models import StateMachineResult
-from .profiles.profile_manager import StateProfilesManager
+from ..models.result import FsmResult
+from .profiles.profile_manager import ProfileManager
 from .history import RawStateHistory
 from .states import State, StateFactory, StateDict
 from .profiles.profile import Profile
@@ -15,19 +14,19 @@ from .profiles.profile import Profile
 class Fsm:
     """ Машина состояний, управляющая историей и счётчиками состояний """
 
-    def __init__(self, config: FsmConfig) -> None:
+    def __init__(self, config: 'FsmConfig') -> None:
         self._enable: bool = config.enable
         self._states: StateDict = StateFactory.build(config.states)
         self._cur_state: Optional[State] = None
         self._meta: dict[str, Any] = config.meta
         self._raw_history = RawStateHistory()
-        self._profile_manager: StateProfilesManager = StateProfilesManager(
+        self._profile_manager: ProfileManager = ProfileManager(
             config.profile_configs,
             config.switcher_strategy,
             config.def_profile,
             self._states
         )
-        self._result: Optional[StateMachineResult] = None
+        self._result: Optional[FsmResult] = None
 
     @property
     def active_profile(self) -> Profile:
@@ -42,10 +41,10 @@ class Fsm:
         return self._cur_state
 
     @property
-    def result(self) -> Optional[StateMachineResult]:
+    def result(self) -> Optional[FsmResult]:
         return self._result
 
-    def process_state(self, cls_id: int) -> StateMachineResult:
+    def process_state(self, cls_id: int) -> FsmResult:
         """
             Обрабатывает новое состояние машины состояний.
             Этапы обработки:
@@ -64,35 +63,42 @@ class Fsm:
         """
         self._cur_state = self._get_state(cls_id)
         self._add_to_raw_history(self._cur_state)
-        self._handle_reset_trigger()
-        break_search = self._handle_break_trigger()
-        self._handle_stable_state()
+        resetter = self._handle_reset_trigger()
+        breaker = self._handle_break_trigger()
+        stable = self._handle_stable_state()
         stage_done = self._check_profile_completion()
 
-        self._result = StateMachineResult(
-            stage_done=stage_done,
+        self._result = FsmResult(
+            active_profile=self.active_profile.name,
             state=self.active_profile.get_state(cls_id),
-            break_search=break_search,
-            stable_state=self.active_profile.is_stable(),
-            counters=self.active_profile._counters.copy(),
-            active_profile=self.active_profile.name if self.active_profile else None,
+            resetter=resetter,
+            breaker=breaker,
+            stable=stable,
+            stage_done=stage_done,
+            # counters=self.active_profile._counters.copy(),
         )
         return self._result
 
     def _get_state(self, cls_id: int) -> State:
         return self._states[cls_id]
 
-    def _handle_reset_trigger(self) -> None:
+    def _handle_reset_trigger(self) -> bool:
+        ret = False
         if self.active_profile.is_reset_trigger(self._cur_state.cls_id):
             self.active_profile.reset_resettable_except(self.cur_state.cls_id)
+            ret = True
+        return ret
 
     def _handle_break_trigger(self) -> bool:
         return self.active_profile.is_break_trigger(self._cur_state.cls_id)
 
-    def _handle_stable_state(self) -> None:
+    def _handle_stable_state(self) -> bool:
+        ret = False
         if self.active_profile.is_stable(self._cur_state.cls_id):
             self.active_profile.update(self._cur_state.cls_id)
             self.active_profile.reset_all_states()
+            ret = True
+        return ret
 
     def _check_profile_completion(self) -> bool:
         if self.active_profile.is_expected_seq_valid():

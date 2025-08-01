@@ -1,2 +1,2 @@
-from .profile_names import *
-from .profile_switcher import *
+from .profile_by_id_router import *
+from .profile_manager import *

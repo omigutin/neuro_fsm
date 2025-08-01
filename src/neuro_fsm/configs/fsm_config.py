@@ -4,9 +4,9 @@ __all__ = ['FsmConfig']
 
 from typing import Optional, Any
 
-from ..core.profiles import ProfileSwitcherStrategies, ProfileNames
 from .profile_config import ProfileConfigTuple
 from .state_config import StateConfig, StateConfigDict
+from ..models.enums import ProfileSwitcherStrategies, ProfileNames
 
 
 class FsmConfig:
@@ -51,7 +51,7 @@ class FsmConfig:
 
     @property
     def switcher_strategy(self) -> ProfileSwitcherStrategies:
-        return self._switcher_strategy if self._switcher_strategy else ProfileSwitcherStrategies.MIXED
+        return self._switcher_strategy if self._switcher_strategy else ProfileSwitcherStrategies.MANUAL
 
     @property
     def def_profile(self) -> str:

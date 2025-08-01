@@ -1,8 +1,9 @@
-from src.neuro_fsm.core.profiles import ProfileSwitcherStrategies, ProfileNames
 from tests.test_configs.classes import NeuroClasses
 
 
 class StateDictWithProfilesConfig:
+    from neuro_fsm.models import ProfileSwitcherStrategies, ProfileNames
+
     ENABLE = True
 
     STATES = (

@@ -1,18 +1,9 @@
-__all__ = ['ProfileSwitcherStrategies', 'StateProfilesSwitcher']
+__all__ = ['StateProfilesSwitcher']
 
-from enum import Enum, auto
 from typing import Optional
 
+from ...models import ProfileSwitcherStrategies
 from .profile import Profile, ProfileDict
-
-
-class ProfileSwitcherStrategies(Enum):
-    """ Стратегии переключения профиля. """
-
-    MANUAL = auto()            # Ручная смена профиля
-    BY_MATCH = auto()          # Если какой-либо профиль завершил последовательность
-    BY_EXCLUSION = auto()      # Если все профили, кроме одного, точно невалидны
-    MIXED = auto()             # Сначала match, иначе если остался один возможный — активируем
 
 
 class StateProfilesSwitcher:

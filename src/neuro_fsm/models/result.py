@@ -1,14 +1,13 @@
-__all__ = ['StateMachineResult']
+__all__ = ['FsmResult']
 
 from dataclasses import dataclass
 from typing import Optional
 
-from .types import CountersDict
 from ..core.states import State
 
 
 @dataclass(frozen=True, slots=True)
-class StateMachineResult:
+class FsmResult:
     """
         Результат обработки одного кадра машиной состояний.
         Args:
@@ -20,11 +19,11 @@ class StateMachineResult:
             active_profile (Optional[str]): Имя активного профиля (если профиль используется).
             switch_event (Optional[tuple[int, str]]): Событие переключения профиля (номер кадра, имя профиля).
     """
-    stage_done: bool
+    active_profile: str
     state: State
-
-    break_search: bool
-    stable_state: Optional[State]
-    counters: CountersDict
-    active_profile: Optional[str]
+    resetter: bool
+    breaker: bool
+    stable: bool
+    stage_done: bool
+    # counters: 'CountersDict'
     switch_event: Optional[tuple[int, str]] = None

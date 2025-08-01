@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 __all__ = ['FsmManager']
 
 from typing import Optional, Any
 
 from ..config_parser.parsing_utils import normalize_enum_str
-from ..configs import FsmConfig
-from ..config_parser.parser_factory import ParserFactory
 from .fsm import Fsm
-from .profiles import ProfileNames
+from ..models import ProfileNames
 
 
 class FsmManager:
@@ -23,6 +23,7 @@ class FsmManager:
             Args:
                 raw_config: Сырые настройки (dict, объект, путь и т.д.)
         """
+        from ..configs import FsmConfig
         self._config: Optional[FsmConfig] = self._parse_raw_config(raw_config) if raw_config else None
         self._fsms: list[Fsm] = []
 
@@ -44,7 +45,7 @@ class FsmManager:
         self._fsms.append(fsm)
         return fsm
 
-    def set_profile(self, profile_name: ProfileNames | str) -> None:
+    def set_active_profile(self, profile_name: ProfileNames | str) -> None:
         """Сменить активный профиль у всех FSM."""
         profile_name = normalize_enum_str(profile_name, case="lower")
         for fsm in self._fsms:
@@ -76,8 +77,9 @@ class FsmManager:
             raise ValueError(f"Config for state machine must be defined.")
 
     @staticmethod
-    def _parse_raw_config(raw_config: Any) -> FsmConfig:
+    def _parse_raw_config(raw_config: Any) -> 'FsmConfig':
         """ Парсит произвольный формат конфигурации в StateMachineConfig. """
+        from ..config_parser.parser_factory import ParserFactory
         return ParserFactory.parse(raw_config)
 
     def __getitem__(self, idx: int) -> Fsm:

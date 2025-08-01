@@ -1,15 +1,15 @@
-__all__ = ['StateProfilesManager']
+__all__ = ['ProfileManager']
 
 from typing import Iterator
 
 from ...configs import ProfileConfigTuple, ProfileConfig
 from ..states import State, StateDict
-from .profile_names import ProfileNames
-from .profile_switcher import ProfileSwitcherStrategies, StateProfilesSwitcher
+from .profile_switcher import StateProfilesSwitcher
 from .profile import Profile, ProfileDict
+from ...models import ProfileSwitcherStrategies, ProfileNames
 
 
-class StateProfilesManager:
+class ProfileManager:
     """
         Менеджер всех профилей машины состояний.
         Хранит активный профиль и управляет логикой обновления/сброса.
@@ -52,7 +52,7 @@ class StateProfilesManager:
         """ Создаёт словарь профилей с маппингом ссылок на State """
         profiles: ProfileDict = {}
         for cfg in configs:
-            profiles[cfg.name] = StateProfilesManager._build_profile(cfg, states)
+            profiles[cfg.name] = ProfileManager._build_profile(cfg, states)
         return profiles
 
     @staticmethod

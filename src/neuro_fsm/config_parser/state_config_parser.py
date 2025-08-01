@@ -1,6 +1,7 @@
 __all__ = ['StateConfigParser']
 
 import warnings
+from dataclasses import replace
 from typing import Any, Sequence, Union
 from enum import Enum
 
@@ -47,17 +48,39 @@ class StateConfigParser:
         return state_configs
 
     @staticmethod
-    def build_dict_with_overrides(overrides_raw: Sequence[Any], base_states: StateConfigDict) -> StateConfigDict:
+    def build_dict_with_overrides(states_override: dict, base_states: StateConfigDict) -> StateConfigDict:
         """
             Создаёт словарь StateConfig с учётом переопределений:
             - Парсит overrides через build_dict
             - Проверяет наличие таких состояний в базовом словаре
             - Мержит параметры, не заменяя cls_id / name
         """
-        overrides_states = StateConfigParser.build_dict(overrides_raw, name_check=False)
-        overrides_states = StateConfigParser._validate_states(overrides_states, base_states)
+        overrides_states = {}
+        for key, override in states_override.items():
+            if isinstance(key, str):
+                config = StateConfigParser._from_name(key, base_states, override)
+            elif isinstance(key, int):
+                config = StateConfigParser._from_id(key, base_states, override)
+            else:
+                raise TypeError("StateConfig override keys must be str (name) or int (cls_id)")
+            overrides_states[config.cls_id] = config
+
         overrides_states = StateConfigParser._merge_with_base(overrides_states, base_states)
         return overrides_states
+
+    @staticmethod
+    def _from_name(name: str, base_state_dict: StateConfigDict, overrides: dict = None) -> StateConfig:
+        for cfg in base_state_dict.values():
+            if cfg.name == name:
+                return replace(cfg, **(overrides or {}))
+        raise ValueError(f"StateConfig with name='{name}' not found in base_state_dict")
+
+    @staticmethod
+    def _from_id(cls_id: int, base_state_dict: StateConfigDict, overrides: dict = None) -> StateConfig:
+        cfg = base_state_dict.get(cls_id)
+        if cfg is None:
+            raise ValueError(f"StateConfig with cls_id={cls_id} not found in base_state_dict")
+        return replace(cfg, **(overrides or {}))
 
     @staticmethod
     def _validate_aliases(state_configs: StateConfigDict) -> None:
@@ -129,26 +152,6 @@ class StateConfigParser:
             break_trigger=getattr(obj, "break_trigger", None),
             threshold=getattr(obj, "threshold", None),
         )
-
-    @staticmethod
-    def _validate_states(overrides_states: StateConfigDict, base_states: StateConfigDict) -> StateConfigDict:
-        """
-            Проверяет состояния из overrides и исключает те, что не найдены в base.
-            Если имя отличается — также исключается.
-            Возвращает отфильтрованный словарь override-состояний.
-        """
-        valid_overrides: StateConfigDict = {}
-
-        for cls_id, override_state in overrides_states.items():
-            base_state = base_states.get(cls_id)
-            if base_state is None:
-                warnings.warn(
-                    f"[StateConfigParser] Skipping override for unknown state id={cls_id}, name='{override_state.name}'"
-                )
-                continue
-            valid_overrides[cls_id] = override_state
-
-        return valid_overrides
 
     @staticmethod
     def _merge_with_base(overrides_states: StateConfigDict, base_states: StateConfigDict) -> StateConfigDict:

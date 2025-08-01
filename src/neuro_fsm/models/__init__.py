@@ -1,2 +1,2 @@
 from .types import *
-from .result import *
+from .enums import ProfileNames, ProfileSwitcherStrategies

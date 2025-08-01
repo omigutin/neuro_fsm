@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['StableStateCounters']
+__all__ = ['StableStateCounters', 'CountersDict']
 
 from typing import TypeAlias
 

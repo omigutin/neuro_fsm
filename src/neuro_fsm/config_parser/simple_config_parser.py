@@ -5,7 +5,8 @@ from ..configs import FsmConfig, ProfileConfig
 from .base_config_parser import BaseconfigParser
 from .state_config_parser import StateConfigParser
 from .config_keys import ConfigKeys
-from ..core.profiles import ProfileNames
+from ..models import ProfileNames
+
 
 class SimpleConfigParser(BaseconfigParser):
     """

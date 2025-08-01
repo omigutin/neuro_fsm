@@ -2,10 +2,10 @@ from __future__ import annotations
 
 __all__ = ['ConfigWithProfileParser']
 
+from enum import Enum
 from typing import Optional, ClassVar
 
 from ..configs import FsmConfig, ProfileConfig
-from ..core.profiles import ProfileSwitcherStrategies, ProfileNames
 from .base_config_parser import BaseconfigParser
 from .state_config_parser import StateConfigParser
 from .config_keys import ConfigKeys
@@ -37,8 +37,8 @@ class ConfigWithProfileParser(BaseconfigParser):
         ConfigKeys.ENABLE: (bool, str, int, type(None)),
         ConfigKeys.STATES: (dict, list, tuple),
         ConfigKeys.STATE_PROFILES: (list, tuple),
-        ConfigKeys.PROFILE_SWITCHER_STRATEGY: (str, type(None), ProfileSwitcherStrategies),
-        ConfigKeys.DEFAULT_PROFILE: (str, type(None), ProfileNames),
+        ConfigKeys.PROFILE_SWITCHER_STRATEGY: (str, type(None), Enum),
+        ConfigKeys.DEFAULT_PROFILE: (str, type(None), Enum),
     }
 
     def parse(self) -> Optional[FsmConfig]:
@@ -53,7 +53,7 @@ class ConfigWithProfileParser(BaseconfigParser):
             name = self._parse_profile_name(profile[ConfigKeys.PROFILE_NAME])
 
             profile_state_configs = StateConfigParser.build_dict_with_overrides(
-                profile.get(ConfigKeys.STATES, []),
+                profile.get(ConfigKeys.STATES, {}),
                 base_state_configs
             )
 

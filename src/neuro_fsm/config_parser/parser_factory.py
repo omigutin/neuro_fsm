@@ -3,9 +3,6 @@ __all__ = ['ParserFactory']
 from types import ModuleType
 from typing import Any
 
-from ..configs import FsmConfig
-from .config_with_profile_parser import ConfigWithProfileParser
-from .simple_config_parser import SimpleConfigParser
 from .parsing_utils import normalize_keys
 
 
@@ -17,8 +14,11 @@ class ParserFactory:
     """
 
     @classmethod
-    def parse(cls, raw_config: Any) -> FsmConfig:
-        config: dict[str, Any] = cls._extract_config_dict(raw_config)
+    def parse(cls, raw_config: Any) -> 'FsmConfig':
+        from .config_with_profile_parser import ConfigWithProfileParser
+        from .simple_config_parser import SimpleConfigParser
+
+        config: dict[str, Any] = cls._extract_config_to_dict(raw_config)
 
         if 'STATE_PROFILES' in config:
             return ConfigWithProfileParser(config).parse()
@@ -29,7 +29,7 @@ class ParserFactory:
         raise ValueError(f"Unsupported dict structure for state machine config: keys={list(config.keys())}")
 
     @classmethod
-    def _extract_config_dict(cls, raw_config: Any) -> dict[str, Any]:
+    def _extract_config_to_dict(cls, raw_config: Any) -> dict[str, Any]:
         """ Создаёт словарь из полученного класса """
         if isinstance(raw_config, dict):
             config = raw_config
