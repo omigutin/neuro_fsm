@@ -8,6 +8,7 @@ packages = [{ include = "neuro_fsm" }]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
+aiofiles = "^24.1.0"
 
 [tool.poetry.group.dev.dependencies]
 rich = "^14.1.0"

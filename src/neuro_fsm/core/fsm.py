@@ -4,6 +4,7 @@ __all__ = ['Fsm']
 
 from typing import Optional, Any
 
+from ..history_writer import HistoryWriterFactory
 from ..models.result import FsmResult
 from .profiles.profile_manager import ProfileManager
 from .history import RawStateHistory
@@ -27,6 +28,9 @@ class Fsm:
             self._states
         )
         self._result: Optional[FsmResult] = None
+        self._raw_history_writer = HistoryWriterFactory.create(config.raw_history_writer)
+        self._stable_history_writer = HistoryWriterFactory.create(config.stable_history_writer)
+
 
     @property
     def active_profile(self) -> Profile:
@@ -102,7 +106,7 @@ class Fsm:
 
     def _check_profile_completion(self) -> bool:
         if self.active_profile.is_expected_seq_valid():
-            self.active_profile.reset_all_states(self.cur_state.cls_id)
+            self.active_profile.reset_all_states_except(self._cur_state.cls_id)
             return True
         return False
 

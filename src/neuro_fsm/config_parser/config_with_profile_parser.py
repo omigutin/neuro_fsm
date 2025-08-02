@@ -39,11 +39,16 @@ class ConfigWithProfileParser(BaseconfigParser):
         ConfigKeys.STATE_PROFILES: (list, tuple),
         ConfigKeys.PROFILE_SWITCHER_STRATEGY: (str, type(None), Enum),
         ConfigKeys.DEFAULT_PROFILE: (str, type(None), Enum),
+        ConfigKeys.RAW_HISTORY_WRITER: (str, type(None), Enum),
+        ConfigKeys.STABLE_HISTORY_WRITER: (str, type(None), Enum),
     }
 
     def parse(self) -> Optional[FsmConfig]:
         enable = parse_bool(self._config.get(ConfigKeys.ENABLE))
         switcher_strategy = self._parse_switcher_strategy(self._config[ConfigKeys.PROFILE_SWITCHER_STRATEGY])
+        raw_history_writer = self._parse_history_writer_config(self._config[ConfigKeys.RAW_HISTORY_WRITER])
+        stable_history_writer = self._parse_history_writer_config(self._config[ConfigKeys.STABLE_HISTORY_WRITER])
+
         base_state_configs = StateConfigParser.build_dict(self._config[ConfigKeys.STATES])
 
         profile_configs: list[ProfileConfig] = []
@@ -81,4 +86,6 @@ class ConfigWithProfileParser(BaseconfigParser):
             switcher_strategy=switcher_strategy,
             def_profile=def_profile,
             meta=self._extract_meta(),
+            raw_history_writer=raw_history_writer,
+            stable_history_writer=stable_history_writer
         )

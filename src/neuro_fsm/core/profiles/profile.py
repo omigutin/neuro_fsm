@@ -62,12 +62,17 @@ class Profile:
 
     def reset_resettable_except(self, *cls_ids: int) -> None:
         for state in self._states.values():
-            if state.cls_id not in [cls_ids] and state.is_resettable:
+            if state.cls_id not in cls_ids and state.is_resettable:
                 self._counters.reset(state.cls_id)
 
     def reset_all_states(self) -> None:
         for state in self._states.values():
             self._counters.reset(state.cls_id)
+
+    def reset_all_states_except(self, *cls_ids: int) -> None:
+        for state in self._states.values():
+            if state.cls_id not in cls_ids:
+                self._counters.reset(state.cls_id)
 
     def is_break_trigger(self, cls_id: int) -> bool:
         return self._states[cls_id].is_breaker

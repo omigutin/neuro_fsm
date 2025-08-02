@@ -6,6 +6,8 @@ from typing import Any, ClassVar
 
 from ..configs import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, ProfileConfig
 from .config_keys import ConfigKeys
+from ..configs.history_writer_config import HistoryWriterConfig
+from ..history_writer.history_writer_format import HistoryWriterFormat
 from ..models import ProfileSwitcherStrategies, ProfileNames
 
 
@@ -30,6 +32,27 @@ class BaseconfigParser(ABC):
         for key, expected_types in self.FIELD_TYPES.items():
             if key in self._config and not isinstance(self._config[key], expected_types):
                 raise TypeError(f"[{self.__class__.__name__}] Field '{key}' must be of type {expected_types}")
+
+    @staticmethod
+    def parse_history_writer_config(data: dict[str, Any]) -> HistoryWriterConfig:
+        # Enum-приведение (case-insensitive)
+        fmt = data.get("format", HistoryWriterFormat.TXT)
+        if isinstance(fmt, str):
+            fmt = HistoryWriterFormat(
+                fmt.upper()) if fmt.upper() in HistoryWriterFormat.__members__ else HistoryWriterFormat(fmt.lower())
+        # Поля обязательно tuple
+        fields = data.get("fields", ())
+        if isinstance(fields, list):
+            fields = tuple(fields)
+        # Конструктор
+        return HistoryWriterConfig(
+            path=data["path"],
+            fields=fields,
+            enable=data.get("enable", False),
+            format=fmt,
+            max_age_days=int(data.get("max_age_days", 14)),
+            async_mode=bool(data.get("async_mode", False))
+        )
 
     @staticmethod
     def _parse_profile_name(name: ProfileNames | str) -> str:

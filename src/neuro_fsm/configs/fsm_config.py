@@ -4,6 +4,7 @@ __all__ = ['FsmConfig']
 
 from typing import Optional, Any
 
+from .history_writer_config import HistoryWriterConfig
 from .profile_config import ProfileConfigTuple
 from .state_config import StateConfig, StateConfigDict
 from ..models.enums import ProfileSwitcherStrategies, ProfileNames
@@ -26,7 +27,9 @@ class FsmConfig:
             profiles: ProfileConfigTuple,
             switcher_strategy: Optional[ProfileSwitcherStrategies],
             def_profile: str,
-            meta: dict[str, Any]
+            meta: dict[str, Any],
+            raw_history_writer: HistoryWriterConfig,
+            stable_history_writer: HistoryWriterConfig
     ) -> None:
         self._enable: bool = enable
         self._state_configs: StateConfigDict = state_configs
@@ -34,6 +37,8 @@ class FsmConfig:
         self._switcher_strategy: Optional[ProfileSwitcherStrategies] = switcher_strategy
         self._def_profile: str = def_profile
         self._meta: dict[str, Any] = meta
+        self._raw_history_writer: HistoryWriterConfig = raw_history_writer
+        self._stable_history_writer: HistoryWriterConfig = stable_history_writer
 
     @property
     def enable(self) -> bool:

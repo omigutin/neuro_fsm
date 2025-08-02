@@ -2,6 +2,23 @@ from src.neuro_fsm.configs import StateConfig
 from neuro_fsm.models import ProfileSwitcherStrategies, ProfileNames
 
 class StateClsWithProfilesConfig:
+    RAW_HISTORY_WRITER = {
+        "enable": True,
+        "format": "csv",
+        "path": "logs/{timestamp}_raw.txt",
+        "fields": ["timestamp", "cls_id", "profile_name"],  # либо state_name
+        "max_age_days": 14,
+        "async_mode": True
+    }
+    STABLE_HISTORY_WRITER = {
+        "enable": True,
+        "format": "json",
+        "path": "logs/{timestamp}_stable.json",
+        "fields": ["timestamp", "active_profile", "state", "resetter", "breaker", "stable", "stage_done"],
+        "max_age_days": 14,
+        "async_mode": True
+    }
+
     ENABLE = True
 
     STATES = (
