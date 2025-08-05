@@ -47,7 +47,7 @@ class ProfileManager:
     def update_profiles(self, cls_id: int) -> bool:
         """Обновляет профили и возвращает True, если активный профиль сменился."""
         for profile in self._profiles.values():
-            profile.add_to_history(cls_id)
+            profile.add_active_state_to_history(cls_id)
 
         is_profile_changed = self._autoswitch_profile()
         if is_profile_changed:
