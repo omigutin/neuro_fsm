@@ -11,13 +11,26 @@ from ..models import ProfileNames
 from ..models.result import FsmResult
 from .profiles.profile_manager import ProfileManager
 from .history import RawStateHistory
-from .profiles.profile import Profile
 
 
 class Fsm:
-    """ Машина состояний, управляющая историей и счётчиками состояний """
+    """
+        Главный управляющий компонент машины состояний.
+        Отвечает за:
+        - Обработку входных состояний от нейросети;
+        - Управление активным профилем (включая автоматическое и ручное переключение);
+        - Ведение сырой и стабильной истории;
+        - Формирование результата обработки (`FsmResult`).
+        Все бизнес-решения и сценарии обработки происходят на этом уровне.
+    """
 
     def __init__(self, config: FsmConfig) -> None:
+        """
+            Инициализация машины состояний на основе переданной конфигурации.
+            Args:
+                config (FsmConfig): Конфигурация, содержащая состояния, профили, стратегию переключения
+                                    и настройки логирования.
+        """
         self._enable: bool = config.enable
         # self._cur_state: Optional[State] = None
         self._meta: dict[str, Any] = config.meta
@@ -37,62 +50,61 @@ class Fsm:
         # Записываем настройки в заголовок файла
         self._stable_history_writer.write_configs(config.to_dict())
 
-    @property
-    def active_profile(self) -> Profile:
-        return self._profile_manager.active_profile
+    # @property
+    # def active_profile(self) -> Profile:
+    #     """ Возвращает текущий активный профиль машины состояний. """
+    #     return self._profile_manager.active_profile
 
     def switch_profile_by_pid(self, pid: Optional[int]) -> None:
-        """ Сменить активный профиль по указанному pid """
+        """ Сменить активный профиль по id продукции (используется при ручной или полуавтоматической стратегии). """
         self._profile_manager.switch_profile_by_pid(pid)
 
     def switch_profile_by_name(self, profile_name: ProfileNames | str) -> None:
-        """ Сменить активный профиль по названию профиля. """
+        """ Сменить активный профиль по имени. """
         profile_name = normalize_enum_str(profile_name, case="lower")
         self._profile_manager.switch_profile_by_name(profile_name)
 
     def process_state(self, cls_id: int) -> FsmResult:
         """
-            Обрабатывает новое состояние машины состояний.
-            Этапы обработки:
-            1. Получение объекта состояния (`State`) по его идентификатору.
-            2. Если состояние является триггером сброса — сбрасываются счётчики других состояний.
-            3. Если состояние является триггером прерывания — возвращается флаг прерывания обработки.
-            4. Если состояние стабильно — записывается в историю, остальные счётчики сбрасываются.
-            5. Если история соответствует ожидаемой последовательности — подготавливается флаг события и
-               сбрасываются все состояния.
+            Основной метод обработки входного состояния от нейросети.
+            Обновляет счётчики, историю, переключает профили (при необходимости), и возвращает результат обработки.
+            Этапы:
+            1. Активирует состояние по `cls_id`;
+            2. Увеличивает счётчик;
+            3. Записывает в сырую историю;
+            4. Обрабатывает триггеры (reset, stable, break);
+            5. Проверяет, сработала ли ожидаемая последовательность.
             Args:
-                cls_id (int): Идентификатор состояния, полученный от нейросети.
+                cls_id (int): Идентификатор класса состояния от нейросети.
+            Returns:
+                FsmResult: Результат обработки (для стабильной истории или внешней логики).
         """
-        cur_state = self.active_profile.activate_state_by_id(cls_id)
-        self.active_profile.increment_counter()
+        self._profile_manager.set_cur_state_by_id(cls_id)
+        self._profile_manager.increment_counter()
 
         # Добавляет состояние в сырую историю
-        self._raw_history.add(cur_state)
+        self._raw_history.add(self._profile_manager.active_profile.cur_state)
 
         # Если текущее состояние является триггером для сброса, сбрасываем все счётчики сбрасываемых состояния, кроме текущего
-        if self.active_profile.is_resetter:
-            self.active_profile.reset_counters(only_resettable=True, except_cur_state=True)
+        self._profile_manager.reset_by_trigger()
 
         # Если текущее состояние стабильное, то прибавляем его счётчик, добавляем в историю и сбрасываем все счётчики состояний, кроме текущего
-        if self.active_profile.is_stable:
-            self.active_profile.add_active_state_to_history()
-            self.active_profile.reset_counters(only_resettable=False, except_cur_state=True)
+        self._profile_manager.commit_stable_states()
 
-        # Если ожидаемая последовательность сработала, скидываем все счётчики и очищаем историю
-        is_stage_done = self.active_profile.is_expected_seq_valid()
-        if is_stage_done:
-            self.active_profile.reset_counters(only_resettable=False, except_cur_state=False)
-            self.active_profile.clear_history()
-            self.active_profile.add_init_states_to_history()
+        # Если ожидаемая последовательность сработала, то проверяем не надо ли сменить активный профиль
+        is_profile_changed = self._profile_manager.update_active_profile()
+        if is_profile_changed:
+            # self._raw_history.recalculate_for(self._profile_manager.active_profile)
+            self._profile_manager.active_profile.reset_to_init_state()
 
         self._result = FsmResult(
-            active_profile=self.active_profile.name,
-            state=cur_state,
-            resetter=self.active_profile.is_resetter,
-            breaker=self.active_profile.is_breaker,
-            stable=self.active_profile.is_stable,
-            stage_done=is_stage_done,
-            # counters=self.active_profile._counters.copy(),
+            active_profile=self._profile_manager.active_profile.name,
+            state=self._profile_manager.active_profile.cur_state,
+            resetter=self._profile_manager.active_profile.is_resetter,
+            breaker=self._profile_manager.active_profile.is_breaker,
+            stable=self._profile_manager.active_profile.is_stable,
+            is_profile_changed=is_profile_changed,
+            # counters=self._profile_manager.active_profile._counters.copy(),
         )
 
         self._raw_history_writer.write(str(cls_id))

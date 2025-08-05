@@ -14,7 +14,7 @@ class FsmResult:
     resetter: bool
     breaker: bool
     stable: bool
-    stage_done: bool
+    is_profile_changed: bool
     switch_event: Optional[tuple[int, str]] = None
     # counters: 'CountersDict'
 
@@ -25,7 +25,7 @@ class FsmResult:
             "resetter": self.resetter,
             "breaker": self.breaker,
             "stable": self.stable,
-            "stage_done": self.stage_done,
+            "is_profile_changed": self.is_profile_changed,
             "switch_event": self.switch_event,
             "active_profile": self.active_profile,
         }

@@ -18,7 +18,6 @@ class ProfileSwitcher:
     def __init__(self, strategy: ProfileSwitcherStrategies, profiles: ProfileDict, profile_ids_map=None) -> None:
         self._strategy: ProfileSwitcherStrategies = strategy
         self._profiles: ProfileDict = profiles
-
         # Переключение по id. Словарь profile_name → list of ids и дефолтный профиль для неуказанных в карте id
         self._id2profile: dict[int, str] = {}
         self._unmapped_ids_profile: Optional[str] = None
@@ -46,17 +45,21 @@ class ProfileSwitcher:
     # def set_strategy(self, strategy: ProfileSwitcherStrategies) -> None:
     #     self._strategy = strategy
 
-    def choose_valid_profile(self, pid: Any = None) -> Optional[Profile]:
+    def choose_valid_profile(self, active_profile: Profile) -> Optional[Profile]:
         """ Выбор активного профиля по текущей стратегии. """
         if self._strategy == ProfileSwitcherStrategies.SINGLE:
             return None
-        if self._strategy == ProfileSwitcherStrategies.BY_MAPPED_ID:
-            return self.choose_by_mapped_id(pid)
+        # if self._strategy == ProfileSwitcherStrategies.BY_MAPPED_ID:
+        #     return self.choose_by_mapped_id(pid)
         if self._strategy == ProfileSwitcherStrategies.BY_MATCH:
+            # Приоритет у текущего профиля
+            if active_profile.is_expected_seq_valid(): return None
             return self._choose_by_match()
         if self._strategy == ProfileSwitcherStrategies.BY_EXCLUSION:
             return self._choose_by_exclusion()
         if self._strategy == ProfileSwitcherStrategies.MIXED:
+            # Приоритет у текущего профиля
+            if active_profile.is_expected_seq_valid(): return None
             return self._choose_by_match() or self._choose_by_exclusion()
         raise ValueError(f"[ProfilesSwitcher] Unknown strategy: {self._strategy}")
 
