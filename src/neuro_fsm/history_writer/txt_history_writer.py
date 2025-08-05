@@ -8,15 +8,14 @@ from ..configs.history_writer_config import HistoryWriterConfig
 
 class TxtHistoryWriter(BaseHistoryWriter):
     def __init__(self, config: HistoryWriterConfig):
-        self.path = config.path
         self.fields = config.fields
         self.async_mode = config.async_mode
+        self.path = self._resolve_log_path(config.path)
         self.file = open(self.path, 'a', encoding='utf-8')
         self._cleanup_old_files(self.path, '.txt', config.max_age_days)
 
-    def write(self, record: Dict[str, Any]) -> None:
-        line = "; ".join(f"{k}={record.get(k, '')}" for k in self.fields)
-        self.file.write(line + '\n')
+    def write(self, record: str) -> None:
+        self.file.write(record + ' ')
         self.file.flush()
 
     async def awrite(self, record: Dict[str, Any]) -> None:

@@ -29,3 +29,18 @@ class BaseHistoryWriter:
                         os.remove(fpath)
                 except Exception:
                     pass
+
+    @staticmethod
+    def _resolve_log_path(template: str) -> str:
+        # Получаем рабочую директорию (корень проекта)
+        root_dir = os.getcwd()
+        logs_dir = os.path.join(root_dir, 'fsm_logs')
+        # Формируем подстановку даты/времени
+        timestamp = datetime.now().strftime('%d%m%Y_%H%M')
+        # Подставляем {timestamp}
+        name = template.format(timestamp=timestamp)
+        # Полный путь
+        abs_path = os.path.join(logs_dir, name)
+        # Создаём каталог, если его нет
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        return abs_path

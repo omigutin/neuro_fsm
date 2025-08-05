@@ -49,6 +49,16 @@ class ProfileConfig:
             raise ValueError(f"Configuration not found for cls_id={cls_id}")
         return state
 
+    def to_dict(self) -> dict:
+        return {
+            'name': self.name,
+            'states': {k: state.to_dict() for k, state in self.states.items()},
+            'init_states': [state.to_dict() for state in self.init_states],
+            'default_states': [state.to_dict() for state in self.default_states],
+            'expected_sequences': [[state.to_dict() for state in sequence] for sequence in self.expected_sequences],
+            'description': self.description,
+        }
+
     def __str__(self):
         return f"StatesProfileConfig(name={self.name})"
 

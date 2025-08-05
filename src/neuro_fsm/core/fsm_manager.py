@@ -24,15 +24,11 @@ class FsmManager:
                 raw_config: Сырые настройки (dict, объект, путь и т.д.)
         """
         from ..configs import FsmConfig
-        self._config: Optional[FsmConfig] = self._parse_raw_config(raw_config) if raw_config else None
+        self._config: Optional[FsmConfig] = None
+        self.set_config(raw_config)
         self._fsms: list[Fsm] = []
 
-    @property
-    def enable(self) -> bool:
-        """ True, если включено использование машины состояний. """
-        return self._config.enable if self._config else False
-
-    def create(self, raw_config: Optional[Any] = None) -> Fsm:
+    def create_fsm(self, raw_config: Optional[Any] = None) -> Fsm:
         """
             Создаёт новую машину состояний и возвращает её.
             Args:
@@ -40,16 +36,34 @@ class FsmManager:
             Returns:
                 Fsm: новая машина состояний.
         """
-        self._set_config(raw_config)
+        self.set_config(raw_config)
         fsm = Fsm(self._config)
         self._fsms.append(fsm)
         return fsm
 
-    def set_active_profile(self, profile_name: ProfileNames | str) -> None:
-        """Сменить активный профиль у всех FSM."""
-        profile_name = normalize_enum_str(profile_name, case="lower")
+    def set_config(self, raw_config: Optional[Any] = None) -> None:
+        """ Устанавливает новую конфигурацию для последующих StateMachine. """
+        self._config = self._parse_raw_config(raw_config) if raw_config else self._config
+        if self._config is None:
+            raise ValueError(f"Config for state machine must be defined.")
+
+    @property
+    def enable(self) -> bool:
+        """ True, если включено использование машины состояний. """
+        return self._config.enable if self._config else False
+
+    def switch_profile_by_pid(self, pid: int) -> None:
+        """ Сменить активный профиль по указанному pid для всех FSM """
         for fsm in self._fsms:
-            fsm._profile_manager.set_active_profile(profile_name)
+            fsm.switch_profile_by_pid(pid)
+
+    def switch_profile_by_name(self, profile_name: ProfileNames | str) -> None:
+        """ Сменить активный профиль у всех FSM по названию профиля. """
+        for fsm in self._fsms:
+            fsm.switch_profile_by_name(profile_name)
+
+
+
 
     def reset_all(self) -> None:
         """Сбросить все FSM."""
@@ -69,12 +83,6 @@ class FsmManager:
         """ Сбрасывает конфигурацию и список созданных машин. """
         self._config = None
         self._fsms.clear()
-
-    def _set_config(self, raw_config: Optional[Any] = None) -> None:
-        """ Устанавливает новую конфигурацию для последующих StateMachine. """
-        self._config = self._parse_raw_config(raw_config) if raw_config else self._config
-        if self._config is None:
-            raise ValueError(f"Config for state machine must be defined.")
 
     @staticmethod
     def _parse_raw_config(raw_config: Any) -> 'FsmConfig':

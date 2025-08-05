@@ -2,23 +2,6 @@ from src.neuro_fsm.configs import StateConfig
 from neuro_fsm.models import ProfileSwitcherStrategies, ProfileNames
 
 class StateClsWithProfilesConfig:
-    RAW_HISTORY_WRITER = {
-        "enable": True,
-        "format": "csv",
-        "path": "logs/{timestamp}_raw.txt",
-        "fields": ["timestamp", "cls_id", "profile_name"],  # либо state_name
-        "max_age_days": 14,
-        "async_mode": True
-    }
-    STABLE_HISTORY_WRITER = {
-        "enable": True,
-        "format": "json",
-        "path": "logs/{timestamp}_stable.json",
-        "fields": ["timestamp", "active_profile", "state", "resetter", "breaker", "stable", "stage_done"],
-        "max_age_days": 14,
-        "async_mode": True
-    }
-
     ENABLE = True
 
     STATES = (
@@ -61,23 +44,42 @@ class StateClsWithProfilesConfig:
         },
     ]
 
-    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.MANUAL
+    PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.BY_MAPPED_ID
     DEFAULT_PROFILE = ProfileNames.DEFAULT
-
     PROFILE_IDS_MAP = {
         "group1": [101, 102, 103],
         "group2": [201, 202],
         ProfileNames.DEFAULT: []
     }
 
-TEST_SEQUENCES = [
-    ([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0], "group1"),  # чистая последовательность
-    ([0, 0, 0, 0, 0, 3, 1, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 0, 0, 3, 3, 0, 0, 0], "group1"),  # встречаются UNKNOWN
+    RAW_HISTORY_WRITER = {
+        "enable": True,
+        "format": "txt",
+        "path": "{timestamp}_raw.txt",
+        "max_age_days": 14,
+        "async_mode": False
+    }
+    STABLE_HISTORY_WRITER = {
+        "enable": True,
+        "format": "json",
+        "path": "{timestamp}_stable.json",
+        "fields": ["timestamp", "active_profile", "state", "resetter", "breaker", "stable", "stage_done"],
+        "max_age_days": 14,
+        "async_mode": False
+    }
 
-    ([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0], "group2"),  # чистая последовательность
-    ([0, 0, 0, 0, 0, 3, 1, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 0, 0, 3, 3, 0, 0, 0], "group2"),  # встречаются UNKNOWN
-
+TEST_SEQUENCES_FOR_DEFAULT = [
     ([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0], "DEFAULT"),  # чистая последовательность
     ([0, 0, 3, 0, 0, 1, 1, 3, 3, 3, 1, 1, 1, 1, 1, 3, 1, 0, 3, 0, 0, 0], "DEFAULT"),  # встречаются UNKNOWN
     ([0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0], "DEFAULT"),  # EMPTY не подряд, шум в виде FULL
+]
+
+TEST_SEQUENCES_FOR_GROUP1 = [
+    ([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0], "group1"),  # чистая последовательность
+    ([0, 0, 0, 0, 0, 3, 1, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 0, 0, 3, 3, 0, 0, 0], "group1"),  # встречаются UNKNOWN
+]
+
+TEST_SEQUENCES_FOR_GROUP2 = [
+    ([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0], "group2"),  # чистая последовательность
+    ([0, 0, 0, 0, 0, 3, 1, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 0, 0, 3, 3, 0, 0, 0], "group2"),  # встречаются UNKNOWN
 ]

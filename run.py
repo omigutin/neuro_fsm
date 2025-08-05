@@ -5,7 +5,10 @@ from rich.console import Console
 from rich import box
 
 from src.neuro_fsm.core import FsmManager, Fsm
-from tests.test_configs.state_cls_with_profiles_cfg import StateClsWithProfilesConfig, TEST_SEQUENCES
+from tests.test_configs.state_cls_with_profiles_cfg import (StateClsWithProfilesConfig,
+                                                            TEST_SEQUENCES_FOR_DEFAULT,
+                                                            TEST_SEQUENCES_FOR_GROUP1,
+                                                            TEST_SEQUENCES_FOR_GROUP2)
 
 
 def main():
@@ -18,12 +21,24 @@ def main():
     table.add_column("Detected Profile", justify="center", style="magenta")
     table.add_column("Result", justify="center", style="bold")
 
-    for i, (seq, expected_profile) in enumerate(TEST_SEQUENCES, 1):
-        fsm_manager = FsmManager(StateClsWithProfilesConfig)
-        fsm: Fsm = fsm_manager.create()
+    fsm_manager = FsmManager(StateClsWithProfilesConfig)
+    fsm: Fsm = fsm_manager.create_fsm()
 
-        for cls in seq:
-            fsm.process_state(cls)
+    fsm.switch_profile_by_pid(None)
+    process_sequences(fsm, table, TEST_SEQUENCES_FOR_DEFAULT)
+
+    fsm.switch_profile_by_pid(102)
+    process_sequences(fsm, table, TEST_SEQUENCES_FOR_GROUP1)
+
+    fsm.switch_profile_by_pid(202)
+    process_sequences(fsm, table, TEST_SEQUENCES_FOR_GROUP2)
+
+    console.print(table)
+
+def process_sequences(fsm, table, sequences):
+    for i, (seq, expected_profile) in enumerate(sequences, 1):
+        for cls_id in seq:
+            fsm.process_state(cls_id)
 
         detected = fsm.active_profile.name if fsm.active_profile else None
         success = detected == expected_profile
@@ -34,8 +49,6 @@ def main():
             str(detected),
             "[green]✔[/green]" if success else "[red]✘[/red]"
         )
-
-    console.print(table)
 
 
 if __name__ == "__main__":

@@ -2,8 +2,9 @@ __all__ = ['BaseconfigParser']
 
 from abc import ABC
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Union, Iterable
 
+from .parsing_utils import normalize_enum_str
 from ..configs import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, ProfileConfig
 from .config_keys import ConfigKeys
 from ..configs.history_writer_config import HistoryWriterConfig
@@ -34,27 +35,6 @@ class BaseconfigParser(ABC):
                 raise TypeError(f"[{self.__class__.__name__}] Field '{key}' must be of type {expected_types}")
 
     @staticmethod
-    def parse_history_writer_config(data: dict[str, Any]) -> HistoryWriterConfig:
-        # Enum-приведение (case-insensitive)
-        fmt = data.get("format", HistoryWriterFormat.TXT)
-        if isinstance(fmt, str):
-            fmt = HistoryWriterFormat(
-                fmt.upper()) if fmt.upper() in HistoryWriterFormat.__members__ else HistoryWriterFormat(fmt.lower())
-        # Поля обязательно tuple
-        fields = data.get("fields", ())
-        if isinstance(fields, list):
-            fields = tuple(fields)
-        # Конструктор
-        return HistoryWriterConfig(
-            path=data["path"],
-            fields=fields,
-            enable=data.get("enable", False),
-            format=fmt,
-            max_age_days=int(data.get("max_age_days", 14)),
-            async_mode=bool(data.get("async_mode", False))
-        )
-
-    @staticmethod
     def _parse_profile_name(name: ProfileNames | str) -> str:
         try:
             return ProfileNames[name.upper()].value
@@ -64,7 +44,7 @@ class BaseconfigParser(ABC):
     @staticmethod
     def _parse_switcher_strategy(value: str | None | ProfileSwitcherStrategies) -> ProfileSwitcherStrategies:
         if value is None:
-            return ProfileSwitcherStrategies.MANUAL
+            return ProfileSwitcherStrategies.SINGLE
         if isinstance(value, Enum):
             return value
         if isinstance(value, str):
@@ -73,6 +53,25 @@ class BaseconfigParser(ABC):
             except KeyError:
                 raise ValueError(f"ProfileSwitcherStrategies has no member '{value}'")
         raise TypeError(f"Cannot parse ProfileSwitcherStrategies from value: {value!r}")
+
+    @staticmethod
+    def _parse_profile_ids_map(value: Union[dict[str, Any], None]) -> dict[str, list[Any]]:
+        """
+            Приводит словарь {profile_name: [id1, id2, ...]} к виду с строковыми ключами и списками значений.
+            Пустой список означает профиль по умолчанию.
+        """
+        if value is None:
+            return {}
+        result = {}
+        for raw_key, raw_ids in value.items():
+            key = normalize_enum_str(raw_key, case="lower")
+            if raw_ids is None:
+                result[key] = []
+            elif isinstance(raw_ids, Iterable) and not isinstance(raw_ids, (str, bytes)):
+                result[key] = list(raw_ids)
+            else:
+                raise ValueError(f"Profile '{key}' must be assigned to a list/tuple of IDs or None, got: {type(raw_ids)}")
+        return result
 
     @staticmethod
     def _parse_default_profile(name: str | None | ProfileNames, profile_configs: list['ProfileConfig']) -> ProfileNames:
@@ -100,6 +99,36 @@ class BaseconfigParser(ABC):
             raise ValueError(
                 f"Profile '{def_profile}' not found in parsed profiles: {[p.name for p in profile_configs]}")
         return def_profile
+
+    @staticmethod
+    def _parse_history_writer_config(data: dict[str, Any] | None) -> HistoryWriterConfig:
+        if data is None:
+            return HistoryWriterConfig(
+                path="",
+                fields=(),
+                enable=False,
+                format=HistoryWriterFormat.TXT,
+                max_age_days=14,
+                async_mode=False
+            )
+
+        # Enum-приведение (case-insensitive)
+        fmt = data.get("format", HistoryWriterFormat.TXT)
+        if isinstance(fmt, str):
+            fmt = HistoryWriterFormat(fmt.lower())
+        # Поля обязательно tuple
+        fields = data.get("fields", ())
+        if isinstance(fields, list):
+            fields = tuple(fields)
+        # Конструктор
+        return HistoryWriterConfig(
+            path=data["path"],
+            fields=fields,
+            enable=data.get("enable", False),
+            format=fmt,
+            max_age_days=int(data.get("max_age_days", 14)),
+            async_mode=bool(data.get("async_mode", False))
+        )
 
     @staticmethod
     def _map_sequence(seq_list: list, state_configs: StateConfigDict) -> StateConfigTupleTuple:

@@ -26,6 +26,20 @@ class StateConfig:
     break_trigger: Optional[bool] = None
     threshold: Optional[float] = None
 
+    def to_dict(self) -> dict:
+        return {
+            'cls_id': self.cls_id,
+            'name': self.name,
+            'full_name': self.full_name,
+            'fiction': self.fiction,
+            'alias_of': self.alias_of,
+            'stable_min_lim': self.stable_min_lim,
+            'resettable': self.resettable,
+            'reset_trigger': self.reset_trigger,
+            'break_trigger': self.break_trigger,
+            'threshold': self.threshold,
+        }
+
     def __post_init__(self):
         """ Проверяет корректность значений параметров  """
         if len(self.name) == 0:

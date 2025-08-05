@@ -6,6 +6,8 @@ from .state import State, StateDict
 
 
 class StateFactory:
+    """ Создаёт словарь состояний из словаря настроек состояний """
+
     @staticmethod
     def build(state_configs: StateConfigDict) -> StateDict:
         states: StateDict = {}

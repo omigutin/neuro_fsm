@@ -17,7 +17,7 @@ class BaseStateHistory(ABC):
         """ Добавляет состояние в историю. """
         self._states.extend(states)
 
-    def reset(self) -> None:
+    def clear(self) -> None:
         """Очищает историю."""
         self._states.clear()
 

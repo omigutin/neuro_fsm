@@ -17,3 +17,15 @@ class FsmResult:
     stage_done: bool
     switch_event: Optional[tuple[int, str]] = None
     # counters: 'CountersDict'
+
+    def to_dict(self) -> dict:
+        return {
+            "state_id": self.state.cls_id,
+            "state_name": self.state.name,
+            "resetter": self.resetter,
+            "breaker": self.breaker,
+            "stable": self.stable,
+            "stage_done": self.stage_done,
+            "switch_event": self.switch_event,
+            "active_profile": self.active_profile,
+        }
