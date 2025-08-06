@@ -5,11 +5,10 @@ import datetime
 from typing import Any, Optional
 
 from .base_history_writer import BaseHistoryWriter
-from ..configs.history_writer_config import HistoryWriterConfig
 
 
 class CsvHistoryWriter(BaseHistoryWriter):
-    def __init__(self, config: HistoryWriterConfig):
+    def __init__(self, config: 'HistoryWriterConfig'):
         self._f = open(config.path, mode, newline='', encoding='utf-8')
         self._writer = csv.writer(self._f)
         # Можно добавить заголовок, если файл пустой:

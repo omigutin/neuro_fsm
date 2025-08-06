@@ -1,7 +1,7 @@
 __all__ = ['HistoryWriterFactory']
 
 from .csv_history_writer import CsvHistoryWriter
-from .history_writer_format import HistoryWriterFormat
+from neuro_fsm.models.history_writer_format import HistoryWriterFormat
 from .json_history_writer import JsonHistoryWriter
 from .txt_history_writer import TxtHistoryWriter
 from ..configs.history_writer_config import HistoryWriterConfig

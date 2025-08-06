@@ -8,7 +8,7 @@ from .parsing_utils import normalize_enum_str
 from ..configs import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, ProfileConfig
 from .config_keys import ConfigKeys
 from ..configs.history_writer_config import HistoryWriterConfig
-from ..history_writer.history_writer_format import HistoryWriterFormat
+from neuro_fsm.models.history_writer_format import HistoryWriterFormat
 from ..models import ProfileSwitcherStrategies, ProfileNames
 
 
@@ -46,7 +46,7 @@ class BaseconfigParser(ABC):
         if value is None:
             return ProfileSwitcherStrategies.SINGLE
         if isinstance(value, Enum):
-            return value
+            return ProfileSwitcherStrategies[value.name]
         if isinstance(value, str):
             try:
                 return ProfileSwitcherStrategies[value.upper()]

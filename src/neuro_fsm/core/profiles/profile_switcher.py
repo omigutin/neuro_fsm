@@ -1,6 +1,6 @@
 __all__ = ['ProfileSwitcher']
 
-from typing import Optional, Any
+from typing import Optional
 
 from ...config_parser.parsing_utils import normalize_enum_str
 from ...models import ProfileSwitcherStrategies, ProfileNames
@@ -42,25 +42,24 @@ class ProfileSwitcher:
         if not self._unmapped_ids_profile:
             raise ValueError(f"[ProfilesSwitcher] Profile for unmapped ids must be defined.")
 
-    # def set_strategy(self, strategy: ProfileSwitcherStrategies) -> None:
-    #     self._strategy = strategy
-
     def choose_valid_profile(self, active_profile: Profile) -> Optional[Profile]:
         """ Выбор активного профиля по текущей стратегии. """
         if self._strategy == ProfileSwitcherStrategies.SINGLE:
             return None
-        # if self._strategy == ProfileSwitcherStrategies.BY_MAPPED_ID:
-        #     return self.choose_by_mapped_id(pid)
+
+        # В случае переключения профайлов через pid, смена профиля осуществляется отдельно в полуручном режиме
+        if self._strategy == ProfileSwitcherStrategies.BY_MAPPED_ID:
+            return None
+
         if self._strategy == ProfileSwitcherStrategies.BY_MATCH:
-            # Приоритет у текущего профиля
-            if active_profile.is_expected_seq_valid(): return None
             return self._choose_by_match()
+
         if self._strategy == ProfileSwitcherStrategies.BY_EXCLUSION:
             return self._choose_by_exclusion()
+
         if self._strategy == ProfileSwitcherStrategies.MIXED:
-            # Приоритет у текущего профиля
-            if active_profile.is_expected_seq_valid(): return None
             return self._choose_by_match() or self._choose_by_exclusion()
+
         raise ValueError(f"[ProfilesSwitcher] Unknown strategy: {self._strategy}")
 
     def choose_by_profile_name(self, profile_name: ProfileNames | str) -> Profile:

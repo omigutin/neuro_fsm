@@ -39,12 +39,9 @@ class ProfileManager:
     def prev_active_profile(self) -> Profile:
         return self._prev_active_profile
 
-    def set_cur_state_by_id(self, cls_id: int) -> None:
+    def register_state(self, cls_id: int):
         for profile in self._profiles.values():
             profile.set_cur_state_by_id(cls_id)
-
-    def increment_counter(self) -> None:
-        for profile in self._profiles.values():
             profile.increment_counter()
 
     def commit_stable_states(self) -> None:
@@ -90,7 +87,7 @@ class ProfileManager:
     @staticmethod
     def _build_profile(config_states: StateConfigDict, profile_config: ProfileConfig) -> Profile:
         """ Для одного профиля создаёт структуру со ссылками на State """
-        state_dict = StateFactory.build(config_states)
+        state_dict = StateFactory.build(config_states, profile_config)
 
         # Преобразуем init_states, default_states, expected_sequences к ссылкам на State
         init_states = tuple(state_dict[s.cls_id] for s in profile_config.init_states)

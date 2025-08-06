@@ -6,6 +6,7 @@ from typing import Any, List, Dict
 
 from .base_history_writer import BaseHistoryWriter
 from ..configs.history_writer_config import HistoryWriterConfig
+from ..core.states import State
 
 
 class JsonHistoryWriter(BaseHistoryWriter):
@@ -22,11 +23,10 @@ class JsonHistoryWriter(BaseHistoryWriter):
             json.dump(record, f, ensure_ascii=False)
             f.write('\n\n')
 
-    def write(self, record: Dict[str, Any]) -> None:
-        record['time'] = datetime.now().strftime('%H%M')
+    def write_state(self, state: State) -> None:
+        record = f"\tstate: {state.name}"
         with open(self.path, 'a', encoding='utf-8') as f:
             json.dump(record, f, ensure_ascii=False)
-            f.write('\n')
 
     async def awrite(self, record: Dict[str, Any]) -> None:
         import aiofiles

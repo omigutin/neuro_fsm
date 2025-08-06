@@ -23,7 +23,7 @@ class StableStateHistory(BaseStateHistory):
 
     def last(self) -> State | None:
         """ Возвращает последнее состояние (если есть). """
-        return self._states[-1] if self._states else None
+        return self._records[-1] if self._records else None
 
     def is_different_from_last(self, *states: State) -> bool:
         """
@@ -31,7 +31,7 @@ class StableStateHistory(BaseStateHistory):
             Returns:
                 True - если последовательность отличается.
         """
-        history_tail = list(self._states)[-len(states):]
+        history_tail = list(self._records)[-len(states):]
         return any(h.cls_id != s.cls_id for h, s in zip(history_tail, states))
 
     def is_valid(self) -> bool:
@@ -40,14 +40,14 @@ class StableStateHistory(BaseStateHistory):
             Returns:
                 True — если есть полное совпадение с одним из шаблонов.
         """
-        if len(self._states) < self._history_min_len:
+        if len(self._records) < self._history_min_len:
             return False
 
         for expected_seq in self._expected_sequences:
-            if len(expected_seq) > len(self._states):
+            if len(expected_seq) > len(self._records):
                 continue
 
-            history_slice = list(self._states)[-len(expected_seq):]
+            history_slice = list(self._records)[-len(expected_seq):]
             if all(h.name == e.name for h, e in zip(history_slice, expected_seq)):
                 return True
 
@@ -56,9 +56,9 @@ class StableStateHistory(BaseStateHistory):
     def is_impossible(self) -> bool:
         """ Возвращает True, если история больше не может соответствовать ни одной ожидаемой последовательности. """
         for expected_seq in self._expected_sequences:
-            if len(expected_seq) > len(self._states):
+            if len(expected_seq) > len(self._records):
                 continue
-            history_tail = list(self._states)[-len(expected_seq):]
+            history_tail = list(self._records)[-len(expected_seq):]
             if all(h.cls_id == e.cls_id for h, e in zip(history_tail, expected_seq)):
                 return False  # ещё возможен матч
         return True

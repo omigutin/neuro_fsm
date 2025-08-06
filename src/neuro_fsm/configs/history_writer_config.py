@@ -2,7 +2,7 @@ __all__ = ['HistoryWriterConfig']
 
 from dataclasses import dataclass
 
-from ..history_writer.history_writer_format import HistoryWriterFormat
+from ..models.history_writer_format import HistoryWriterFormat
 
 
 @dataclass(frozen=True, slots=True)

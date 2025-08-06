@@ -32,9 +32,9 @@ class Fsm:
                                     и настройки логирования.
         """
         self._enable: bool = config.enable
-        # self._cur_state: Optional[State] = None
         self._meta: dict[str, Any] = config.meta
         self._raw_history = RawStateHistory()
+
         self._profile_manager: ProfileManager = ProfileManager(
             state_configs=config.states,
             profile_configs=config.profile_configs,
@@ -42,7 +42,7 @@ class Fsm:
             def_profile=config.def_profile,
             profile_ids_map=config.profile_ids_map
         )
-        self._result: Optional[FsmResult] = None
+
         # Писатель сырой истории
         self._raw_history_writer = HistoryWriterFactory.create(config.raw_history_writer)
         # Писатель стабильной истории
@@ -79,8 +79,11 @@ class Fsm:
             Returns:
                 FsmResult: Результат обработки (для стабильной истории или внешней логики).
         """
-        self._profile_manager.set_cur_state_by_id(cls_id)
-        self._profile_manager.increment_counter()
+        is_profile_changed: bool = False
+
+        self._profile_manager.register_state(cls_id)
+        self._raw_history_writer.write(str(cls_id))
+        self._stable_history_writer.write_state(self._profile_manager.active_profile.cur_state)
 
         # Добавляет состояние в сырую историю
         self._raw_history.add(self._profile_manager.active_profile.cur_state)
@@ -91,13 +94,18 @@ class Fsm:
         # Если текущее состояние стабильное, то прибавляем его счётчик, добавляем в историю и сбрасываем все счётчики состояний, кроме текущего
         self._profile_manager.commit_stable_states()
 
-        # Если ожидаемая последовательность сработала, то проверяем не надо ли сменить активный профиль
-        is_profile_changed = self._profile_manager.update_active_profile()
-        if is_profile_changed:
-            # self._raw_history.recalculate_for(self._profile_manager.active_profile)
-            self._profile_manager.active_profile.reset_to_init_state()
+        # Проверяем, сработала ли последовательность из активного профиля
+        stage_done = self._profile_manager.active_profile.is_expected_seq_valid()
+        if not stage_done:
+            # Если ожидаемая последовательность сработала, то проверяем не надо ли сменить активный профиль
+            is_profile_changed = self._profile_manager.update_active_profile()
+            if is_profile_changed:
+                # self._raw_history.recalculate_for(self._profile_manager.active_profile)
+                self._profile_manager.active_profile.reset_to_init_state()
 
-        self._result = FsmResult(
+        self._stable_history_writer.write_entry(self._result.to_dict())
+
+        return FsmResult(
             active_profile=self._profile_manager.active_profile.name,
             state=self._profile_manager.active_profile.cur_state,
             resetter=self._profile_manager.active_profile.is_resetter,
@@ -106,8 +114,3 @@ class Fsm:
             is_profile_changed=is_profile_changed,
             # counters=self._profile_manager.active_profile._counters.copy(),
         )
-
-        self._raw_history_writer.write(str(cls_id))
-        self._stable_history_writer.write(self._result.to_dict())
-
-        return self._result

@@ -1,9 +1,11 @@
 # run.py — ручной запуск и примеры NeuroFSM
+from typing import Optional
 
 from rich.table import Table
 from rich.console import Console
 from rich import box
 
+from neuro_fsm.models.result import FsmResult
 from src.neuro_fsm.core import FsmManager, Fsm
 from tests.test_configs.state_cls_with_profiles_cfg import (StateClsWithProfilesConfig,
                                                             TEST_SEQUENCES_FOR_DEFAULT,
@@ -37,16 +39,18 @@ def main():
 
 def process_sequences(fsm, table, sequences):
     for i, (seq, expected_profile) in enumerate(sequences, 1):
-        for cls_id in seq:
-            fsm.process_state(cls_id)
+        result: Optional[FsmResult] = None
 
-        detected = fsm.active_profile.name if fsm.active_profile else None
-        success = detected == expected_profile
+        for cls_id in seq:
+            result = fsm.process_state(cls_id)
+
+        detected_profile = result.active_profile if result.active_profile else None
+        success = detected_profile.upper() == expected_profile.upper()
         table.add_row(
             str(i),
             str(seq),
             str(expected_profile),
-            str(detected),
+            str(detected_profile),
             "[green]✔[/green]" if success else "[red]✘[/red]"
         )
 
