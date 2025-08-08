@@ -21,6 +21,10 @@ class StableStateHistory(BaseStateHistory):
         self._expected_sequences: StateTupleTuple = expected_sequences
         self._history_min_len: int = min(len(seq) for seq in self._expected_sequences)
 
+    @property
+    def expected_sequences(self) -> StateTupleTuple:
+        return self._expected_sequences
+
     def last(self) -> State | None:
         """ Возвращает последнее состояние (если есть). """
         return self._records[-1] if self._records else None

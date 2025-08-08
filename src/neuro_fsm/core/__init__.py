@@ -1,2 +1,2 @@
-from .fsm_manager import *
 from .fsm import *
+from .fsm_manager import *

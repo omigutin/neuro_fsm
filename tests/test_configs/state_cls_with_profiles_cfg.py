@@ -54,15 +54,13 @@ class StateClsWithProfilesConfig:
 
     RAW_HISTORY_WRITER = {
         "enable": True,
-        "format": "txt",
-        "path": "{timestamp}_raw.txt",
+        "name": "{timestamp}_raw.txt",
         "max_age_days": 14,
         "async_mode": False
     }
     STABLE_HISTORY_WRITER = {
         "enable": True,
-        "format": "json",
-        "path": "{timestamp}_stable.json",
+        "name": "{timestamp}_stable.json",
         "fields": ["timestamp", "active_profile", "state", "resetter", "breaker", "stable", "stage_done"],
         "max_age_days": 14,
         "async_mode": False

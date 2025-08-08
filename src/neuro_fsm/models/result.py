@@ -1,20 +1,22 @@
 __all__ = ['FsmResult']
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from ..core.states import State
+if TYPE_CHECKING:
+    from ..core.states import State
 
 
 @dataclass(frozen=True, slots=True)
 class FsmResult:
     """ Результат обработки одного кадра машиной состояний. """
     active_profile: str
-    state: State
+    state: 'State'
     resetter: bool
     breaker: bool
     stable: bool
     is_profile_changed: bool
+    stage_done: bool
     switch_event: Optional[tuple[int, str]] = None
     # counters: 'CountersDict'
 
@@ -26,6 +28,7 @@ class FsmResult:
             "breaker": self.breaker,
             "stable": self.stable,
             "is_profile_changed": self.is_profile_changed,
+            "stage_done": self.stage_done,
             "switch_event": self.switch_event,
             "active_profile": self.active_profile,
         }

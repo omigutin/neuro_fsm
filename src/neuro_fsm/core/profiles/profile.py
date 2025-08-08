@@ -50,6 +50,22 @@ class Profile:
         return self._cur_state
 
     @property
+    def states(self) -> StateDict:
+        return self._states
+
+    @property
+    def init_states(self) -> StateTuple:
+        return self._init_states
+
+    @property
+    def default_states(self) -> StateTuple:
+        return self._default_states
+
+    @property
+    def counters(self) -> StableStateCounters:
+        return self._counters
+
+    @property
     def history(self) -> StableStateHistory:
         return self._history
 

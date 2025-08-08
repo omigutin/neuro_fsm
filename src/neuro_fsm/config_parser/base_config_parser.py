@@ -4,12 +4,11 @@ from abc import ABC
 from enum import Enum
 from typing import Any, ClassVar, Union, Iterable
 
-from .parsing_utils import normalize_enum_str
 from ..configs import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, ProfileConfig
-from .config_keys import ConfigKeys
 from ..configs.history_writer_config import HistoryWriterConfig
-from neuro_fsm.models.history_writer_format import HistoryWriterFormat
 from ..models import ProfileSwitcherStrategies, ProfileNames
+from .parsing_utils import normalize_enum_str
+from .config_keys import ConfigKeys
 
 
 class BaseconfigParser(ABC):
@@ -104,28 +103,21 @@ class BaseconfigParser(ABC):
     def _parse_history_writer_config(data: dict[str, Any] | None) -> HistoryWriterConfig:
         if data is None:
             return HistoryWriterConfig(
-                path="",
+                name="",
                 fields=(),
                 enable=False,
-                format=HistoryWriterFormat.TXT,
                 max_age_days=14,
                 async_mode=False
             )
-
-        # Enum-приведение (case-insensitive)
-        fmt = data.get("format", HistoryWriterFormat.TXT)
-        if isinstance(fmt, str):
-            fmt = HistoryWriterFormat(fmt.lower())
         # Поля обязательно tuple
         fields = data.get("fields", ())
         if isinstance(fields, list):
             fields = tuple(fields)
         # Конструктор
         return HistoryWriterConfig(
-            path=data["path"],
+            name=data["name"],
             fields=fields,
             enable=data.get("enable", False),
-            format=fmt,
             max_age_days=int(data.get("max_age_days", 14)),
             async_mode=bool(data.get("async_mode", False))
         )

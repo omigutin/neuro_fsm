@@ -6,7 +6,7 @@ from typing import Optional, Any
 
 from ..config_parser.parsing_utils import normalize_enum_str
 from ..configs import FsmConfig
-from ..history_writer import HistoryWriterFactory
+from ..history_writer import StableHistoryWriter, RawHistoryWriter
 from ..models import ProfileNames
 from ..models.result import FsmResult
 from .profiles.profile_manager import ProfileManager
@@ -44,11 +44,12 @@ class Fsm:
         )
 
         # Писатель сырой истории
-        self._raw_history_writer = HistoryWriterFactory.create(config.raw_history_writer)
+        self._raw_history_writer = RawHistoryWriter(config.raw_history_writer)
         # Писатель стабильной истории
-        self._stable_history_writer = HistoryWriterFactory.create(config.stable_history_writer)
-        # Записываем настройки в заголовок файла
+        self._stable_history_writer = StableHistoryWriter(config.stable_history_writer)
+        # Записываем настройки и конфигурацию профилей
         self._stable_history_writer.write_configs(config.to_dict())
+        self._stable_history_writer.write_profile_configs(self._profile_manager._profiles)
 
     # @property
     # def active_profile(self) -> Profile:
@@ -82,6 +83,7 @@ class Fsm:
         is_profile_changed: bool = False
 
         self._profile_manager.register_state(cls_id)
+
         self._raw_history_writer.write(str(cls_id))
         self._stable_history_writer.write_state(self._profile_manager.active_profile.cur_state)
 
@@ -103,7 +105,7 @@ class Fsm:
                 # self._raw_history.recalculate_for(self._profile_manager.active_profile)
                 self._profile_manager.active_profile.reset_to_init_state()
 
-        self._stable_history_writer.write_entry(self._result.to_dict())
+        self._stable_history_writer.write_runtime(self._profile_manager.active_profile, self._profile_manager)
 
         return FsmResult(
             active_profile=self._profile_manager.active_profile.name,
@@ -112,5 +114,6 @@ class Fsm:
             breaker=self._profile_manager.active_profile.is_breaker,
             stable=self._profile_manager.active_profile.is_stable,
             is_profile_changed=is_profile_changed,
+            stage_done=stage_done,
             # counters=self._profile_manager.active_profile._counters.copy(),
         )
