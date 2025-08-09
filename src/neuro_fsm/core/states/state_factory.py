@@ -1,7 +1,9 @@
 __all__ = ['StateFactory']
 
-from ...configs import StateConfigDict, StateConfig, ProfileConfig
-from .state import State, StateDict
+from ...configs.state_config import StateConfigDict, StateConfig
+from ...configs.profile_config import ProfileConfig
+from .state import State
+from .types import StateDict
 
 
 class StateFactory:

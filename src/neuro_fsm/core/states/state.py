@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-__all__ = ['State', 'StateOrIdType', 'StateTuple', 'StateDict', 'StateTupleTuple', 'StatesDictTuple']
+__all__ = ['State']
 
 from dataclasses import dataclass
-from typing import TypeAlias, Union, Optional
+from typing import Optional
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,11 +74,3 @@ class State:
     def __str__(self) -> str:
         """ Краткое строковое представление состояния. """
         return f"<State {self.name} (id={self.cls_id})>"
-
-
-StateDict: TypeAlias = dict[int, State]
-
-StateOrIdType: TypeAlias = Union[State, int]
-StateTuple: TypeAlias = tuple[State, ...]
-StateTupleTuple: TypeAlias = tuple[StateTuple, ...]
-StatesDictTuple: TypeAlias = dict[StateTuple, int]

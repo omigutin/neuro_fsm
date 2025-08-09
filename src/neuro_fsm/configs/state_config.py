@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ['StateConfig', 'StateConfigOrIdType', 'StateConfigDict', 'StateConfigTuple', 'StateConfigTupleTuple']
 
 from dataclasses import dataclass
-from typing import TypeAlias, Union, Optional
+from typing import Optional, TypeAlias, Union
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,7 +58,8 @@ class StateConfig:
         return f"StateConfig (name={self.name!r}, cls_id={self.cls_id}, full_name={self.full_name!r})"
 
 
-StateConfigOrIdType: TypeAlias = Union[StateConfig, int]
-StateConfigDict: TypeAlias = dict[int, StateConfig]
+StateConfigId: TypeAlias = int
+StateConfigOrIdType: TypeAlias = Union[StateConfig, StateConfigId]
+StateConfigDict: TypeAlias = dict[StateConfigId, StateConfig]
 StateConfigTuple: TypeAlias = tuple[StateConfig, ...]
-StateConfigTupleTuple: TypeAlias = tuple[tuple[StateConfig, ...], ...]
+StateConfigTupleTuple: TypeAlias = tuple[StateConfigTuple, ...]

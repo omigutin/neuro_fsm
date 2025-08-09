@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, Sequence
 
 from ..configs.history_writer_config import HistoryWriterConfig
-from ..core.profiles.profile import Profile, ProfileDict
+from ..core.profiles.profile import Profile
+from ..core.profiles.types import ProfileDict
 from ..core.states import State
 from .base_history_writer import BaseHistoryWriter
 
@@ -79,18 +80,6 @@ class StableHistoryWriter(BaseHistoryWriter):
         self._file.flush()
         self._events_started = False
         self.close()
-
-    async def async_write_state(self, state: State) -> None:
-        """Асинхронно записывает событие состояния."""
-        self.write_state(state)
-
-    async def async_write_action(self, action: str, profiles: Sequence[str]) -> None:
-        """Асинхронно записывает событие действия."""
-        self.write_action(action, profiles)
-
-    async def async_write_runtime(self, active: Profile, profiles: Iterable[Profile]) -> None:
-        """Асинхронно фиксирует состояние профилей."""
-        self.write_runtime(active, profiles)
 
     def _ensure_events(self) -> None:
         """ Гарантирует наличие секции EVENTS. """

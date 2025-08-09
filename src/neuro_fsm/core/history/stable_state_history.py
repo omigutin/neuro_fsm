@@ -1,8 +1,8 @@
 __all__ = ['StableStateHistory']
 
-from .base_state_history import BaseStateHistory
-from ..states import StateTupleTuple, State
 from ...configs import ProfileConfig
+from ..states import StateTupleTuple, State
+from .base_state_history import BaseStateHistory
 
 
 class StableStateHistory(BaseStateHistory):

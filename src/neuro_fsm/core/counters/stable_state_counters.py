@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-__all__ = ['StableStateCounters', 'CountersDict']
+__all__ = ['StableStateCounters']
 
-from typing import TypeAlias
-
-from ...core.states import StateDict
+from ..states.types import StateDict
+from .types import CountersDict
 
 
 class StableStateCounters:
@@ -46,5 +45,3 @@ class StableStateCounters:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(counters={self._counters})"
-
-CountersDict: TypeAlias = dict[int, int]

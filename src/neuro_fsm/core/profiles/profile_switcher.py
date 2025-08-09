@@ -4,7 +4,8 @@ from typing import Optional
 
 from ...config_parser.parsing_utils import normalize_enum_str
 from ...models import ProfileSwitcherStrategies, ProfileNames
-from .profile import Profile, ProfileDict
+from .profile import Profile
+from .types import ProfileDict
 
 
 class ProfileSwitcher:

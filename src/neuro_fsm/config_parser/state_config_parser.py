@@ -5,7 +5,7 @@ from dataclasses import replace
 from typing import Any, Sequence, Union
 from enum import Enum
 
-from ..configs import StateConfig, StateConfigDict
+from ..configs.state_config import StateConfig, StateConfigDict
 
 
 class StateConfigParser:

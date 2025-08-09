@@ -2,11 +2,13 @@ __all__ = ['ProfileManager']
 
 from typing import Iterator, Optional
 
-from ...configs import ProfileConfigTuple, ProfileConfig, StateConfigDict
+from ...configs.profile_config import ProfileConfig, ProfileConfigTuple
+from ...configs.state_config import StateConfigDict
 from ...models import ProfileSwitcherStrategies, ProfileNames
 from ..states import StateFactory
 from .profile_switcher import ProfileSwitcher
-from .profile import Profile, ProfileDict
+from .profile import Profile
+from .types import ProfileDict
 
 
 class ProfileManager:

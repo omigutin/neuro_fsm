@@ -1,6 +1,4 @@
-__all__ = ['Profile', 'ProfileDict']
-
-from typing import TypeAlias, Tuple, Dict, Optional
+__all__ = ['Profile']
 
 from ..states import State, StateTuple, StateDict
 from ..counters import StableStateCounters
@@ -20,7 +18,7 @@ class Profile:
             states: StateDict,
             init_states: StateTuple,
             default_states: StateTuple,
-            expected_sequences: Tuple[StateTuple, ...],
+            expected_sequences: tuple[StateTuple, ...],
             description: str = ""
         ) -> None:
         self._name: str  = name
@@ -116,5 +114,3 @@ class Profile:
 
     def __repr__(self):
         return f"<Profile {self._name} ({len(self._states)} states)>"
-
-ProfileDict: TypeAlias = Dict[str, Profile]

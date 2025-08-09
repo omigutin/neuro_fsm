@@ -5,7 +5,8 @@ __all__ = ['ProfileConfig', 'ProfileConfigTuple']
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from .state_config import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple, StateConfigOrIdType
+from .state_config import StateConfig
+from .state_config import StateConfigOrIdType, StateConfigDict, StateConfigTuple, StateConfigTupleTuple
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,5 +62,6 @@ class ProfileConfig:
 
     def __str__(self):
         return f"StatesProfileConfig(name={self.name})"
+
 
 ProfileConfigTuple: TypeAlias = tuple[ProfileConfig, ...]

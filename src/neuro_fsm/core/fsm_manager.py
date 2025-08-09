@@ -4,7 +4,6 @@ __all__ = ['FsmManager']
 
 from typing import Optional, Any
 
-from ..config_parser.parsing_utils import normalize_enum_str
 from .fsm import Fsm
 from ..models import ProfileNames
 

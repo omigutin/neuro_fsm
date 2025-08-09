@@ -60,7 +60,7 @@ class StateClsWithProfilesConfig:
     }
     STABLE_HISTORY_WRITER = {
         "enable": True,
-        "name": "{timestamp}_stable.json",
+        "name": "{timestamp}_stable.yaml",
         "fields": ["timestamp", "active_profile", "state", "resetter", "breaker", "stable", "stage_done"],
         "max_age_days": 14,
         "async_mode": False

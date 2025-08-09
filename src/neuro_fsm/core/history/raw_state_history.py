@@ -1,18 +1,9 @@
 from __future__ import annotations
 
-__all__ = ['RawStateHistory',
-           # 'RawStateItem',
-           # 'RawStateSequence'
-           ]
-
-from enum import Enum
-from typing import TypeAlias, Sequence, Union
+__all__ = ['RawStateHistory', ]
 
 from .base_state_history import BaseStateHistory
 from ..states import State
-
-# RawStateItem: TypeAlias = Union[int, str, Enum, State]
-# RawStateSequence: TypeAlias = Sequence[RawStateItem]
 
 
 class RawStateHistory(BaseStateHistory):
