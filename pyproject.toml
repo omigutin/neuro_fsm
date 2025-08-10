@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["migutin83 <138582932+migutin83@users.noreply.github.com>"]
 readme = "README.md"
-packages = [{ include = "neuro_fsm" }]
+packages = [{ include = "neuro_fsm", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
