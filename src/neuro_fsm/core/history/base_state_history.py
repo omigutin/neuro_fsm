@@ -13,6 +13,11 @@ class BaseStateHistory(ABC):
     def __init__(self, max_len: int = 100) -> None:
         self._records: Deque[State] = deque(maxlen=max_len)
 
+    @property
+    def records(self) -> tuple[State, ...]:
+        """ Возвращает всю историю состояний. """
+        return tuple(self._records)
+
     def add(self, *states: State) -> None:
         """ Добавляет состояние в историю. """
         self._records.extend(states)

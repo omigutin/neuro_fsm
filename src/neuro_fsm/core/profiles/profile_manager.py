@@ -34,6 +34,10 @@ class ProfileManager:
         self._switcher: ProfileSwitcher = ProfileSwitcher(switcher_strategy, self._profiles, profile_ids_map)
 
     @property
+    def profiles(self) -> ProfileDict:
+        return self._profiles
+
+    @property
     def active_profile(self) -> Profile:
         return self._active_profile
 

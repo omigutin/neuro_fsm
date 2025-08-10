@@ -34,7 +34,7 @@ class State:
         """
         return self.alias_of if self.alias_of is not None else self.cls_id
 
-    def to_dict(self) -> dict[str, str | int | dict[str, str | int | float | None]]:
+    def to_dict(self) -> dict:
         """
             Сериализует состояние в словарь.
             Returns:
@@ -74,3 +74,10 @@ class State:
     def __str__(self) -> str:
         """ Краткое строковое представление состояния. """
         return f"<State {self.name} (id={self.cls_id})>"
+
+    def __repr__(self) -> str:
+        """ Подробное строковое представление для отладки. """
+        return (f"cls_id={self.cls_id}, name={self.name!r}, full_name={self.full_name!r}, "
+                f"is_fiction: {self.is_fiction}, alias_of: {self.alias_of}, stable_min_lim: {self.stable_min_lim}, "
+                f"is_resettable: {self.is_resettable}, is_resetter: {self.is_resetter}, is_breaker: {self.is_breaker}, "
+                f"threshold: {self.threshold}")

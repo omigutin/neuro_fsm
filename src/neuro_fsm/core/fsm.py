@@ -99,13 +99,21 @@ class Fsm:
         # Проверяем, сработала ли последовательность из активного профиля
         stage_done = self._profile_manager.active_profile.is_expected_seq_valid()
         if not stage_done:
-            # Если ожидаемая последовательность сработала, то проверяем не надо ли сменить активный профиль
+            # Если ожидаемая последовательность НЕ сработала, то проверяем не надо ли сменить активный профиль
             is_profile_changed = self._profile_manager.update_active_profile()
             if is_profile_changed:
                 # self._raw_history.recalculate_for(self._profile_manager.active_profile)
                 self._profile_manager.active_profile.reset_to_init_state()
 
-        self._stable_history_writer.write_runtime(self._profile_manager.active_profile, self._profile_manager)
+        if self._profile_manager.active_profile.is_stable:
+            self._stable_history_writer.write_action("add_state_to_history", self._profile_manager.active_profile)
+        if stage_done:
+            self._stable_history_writer.write_action("expected_seq_done", self._profile_manager.active_profile)
+        if is_profile_changed:
+            self._stable_history_writer.write_action("active_profile_changed", self._profile_manager.active_profile)
+
+        if stage_done or is_profile_changed:
+            self._stable_history_writer.write_runtime(self._profile_manager.profiles, self._profile_manager.active_profile)
 
         return FsmResult(
             active_profile=self._profile_manager.active_profile.name,
