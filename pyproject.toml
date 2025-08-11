@@ -15,7 +15,7 @@ classifiers = [
     "Topic :: Utilities"
 ]
 packages = [
-    { include = "file_path_parser", from = "src" }
+    { include = "neuro_fsm", from = "src" }
 ]
 
 [tool.poetry.dependencies]
