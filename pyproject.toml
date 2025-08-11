@@ -1,17 +1,36 @@
 [tool.poetry]
 name = "neuro-fsm"
 version = "0.1.0"
-description = ""
-authors = ["migutin83 <138582932+migutin83@users.noreply.github.com>"]
+description = "NeuroFSM is a lightweight finite state machine framework tailored for neural network inference pipelines. It helps structure and track transitions between high-level states predicted by AI models in real-time or batch processing systems."
+authors = [
+    {name = "migutin83", email = "migutin83@yandex.ru"}
+]
 readme = "README.md"
-packages = [{ include = "neuro_fsm", from = "src" }]
+license = "MIT"
+keywords = ["neuro", "finite_state_machine", "state_machine"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"
+]
+packages = [
+    { include = "file_path_parser", from = "src" }
+]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
-aiofiles = "^24.1.0"
+python = ">=3.10"
 
 [tool.poetry.group.dev.dependencies]
 rich = "^14.1.0"
+aiofiles = "^24.1.0"
+pytest = "^8.0"
+
+[tool.poetry.urls]
+Homepage = "https://github.com/omigutin/neuro_fsm"
+Issues = "https://github.com/users/omigutin/projects/3"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
