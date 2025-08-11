@@ -2,9 +2,7 @@
 name = "neuro-fsm"
 version = "0.1.0"
 description = "NeuroFSM is a lightweight finite state machine framework tailored for neural network inference pipelines. It helps structure and track transitions between high-level states predicted by AI models in real-time or batch processing systems."
-authors = [
-    {name = "migutin83", email = "migutin83@yandex.ru"}
-]
+authors = ["migutin83 <migutin83@yandex.ru>"]
 readme = "README.md"
 license = "MIT"
 keywords = ["neuro", "finite_state_machine", "state_machine"]
