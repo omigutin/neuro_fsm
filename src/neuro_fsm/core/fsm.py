@@ -10,6 +10,7 @@ from ..configs import FsmConfig
 from ..history_writer import StableHistoryWriter, RawHistoryWriter
 from ..models import ProfileNames
 from ..models.result import FsmResult
+from .active_profile_view import ActiveProfileView
 from .profiles.profile_manager import ProfileManager
 from .history import RawStateHistory
 
@@ -48,13 +49,13 @@ class Fsm:
         self._stable_history_writer = StableHistoryWriter(config.stable_history_writer)
         # Записываем настройки и конфигурацию профилей
         self._stable_history_writer.write_configs(config.to_dict())
-        self._stable_history_writer.write_profile_configs(self._profile_manager._profiles)
+        self._stable_history_writer.write_profile_configs(self._profile_manager.profiles)
         # Результат работы fsm
         self._result: Optional[FsmResult] = None
         self._step_index: int = 0
 
     @property
-    def active(self) -> ActiveProfileView:
+    def profile(self) -> ActiveProfileView:
         """ Read-only представление активного профиля. """
         return ActiveProfileView(self._profile_manager.active_profile)
 

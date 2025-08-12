@@ -25,29 +25,29 @@ class ActiveProfileView:
     """
 
     def __init__(self, profile: "Profile") -> None:
-        self._profile = profile
+        self._active_profile = profile
 
     @property
     def name(self) -> str:
-        return self._profile.name
+        return self._active_profile.name
 
     def init_states(self) -> "StateTuple":
-        return self._profile.init_states
+        return self._active_profile.init_states
 
     def default_states(self) -> "StateTuple":
-        return self._profile.default_states
+        return self._active_profile.default_states
 
     def expected_sequences_names(self) -> tuple[tuple[str, ...], ...]:
-        return tuple(tuple(s.name for s in seq) for seq in self._profile.expected_sequences)
+        return tuple(tuple(s.name for s in seq) for seq in self._active_profile.expected_sequences)
 
     def get_threshold(self, cls_id: int) -> Optional[float]:
-        return self._profile.states[cls_id].threshold
+        return self._active_profile.states[cls_id].threshold
 
     def is_breaker(self, cls_id: int) -> bool:
-        return self._profile.states[cls_id].is_breaker
+        return self._active_profile.states[cls_id].is_breaker
 
     def is_resetter(self, cls_id: int) -> bool:
-        return self._profile.states[cls_id].is_resetter
+        return self._active_profile.states[cls_id].is_resetter
 
     def is_resettable(self, cls_id: int) -> bool:
-        return self._profile.states[cls_id].is_resettable
+        return self._active_profile.states[cls_id].is_resettable
