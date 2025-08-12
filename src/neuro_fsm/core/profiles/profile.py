@@ -65,16 +65,6 @@ class Profile:
         return self._expected_sequences
 
     @property
-    def counters(self) -> dict[State, int]:
-        """ Возвращает словарь {State: count}, что удобно для логирования и отображения. """
-        counters = self._counters.as_dict()
-        return {self._states[cls_id]: count for cls_id, count in counters.items()}
-
-    @property
-    def history(self) -> StableStateHistory:
-        return self._history
-
-    @property
     def is_resetter(self) -> bool:
         return self._cur_state.is_resetter
 
@@ -85,6 +75,14 @@ class Profile:
     @property
     def is_stable(self) -> bool:
         return self._counters.get(self._cur_state.cls_id) >= self._cur_state.stable_min_lim
+
+    def get_counters(self) -> dict[State, int]:
+        """ Возвращает словарь {State: count}, что удобно для логирования и отображения. """
+        counters = self._counters.as_dict()
+        return {self._states[cls_id]: count for cls_id, count in counters.items()}
+
+    def get_history(self) -> list[State]:
+        return self._history.records
 
     def is_expected_seq_valid(self) -> bool:
         return self._history.is_valid()

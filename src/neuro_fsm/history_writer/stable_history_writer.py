@@ -89,7 +89,7 @@ class StableHistoryWriter(BaseHistoryWriter):
             w(f"    init_states: {fmt_state_names(profile.init_states)}\n")
             w(f"    default_states: {fmt_state_names(profile.default_states)}\n")
             w("    expected_sequences:\n")
-            w(fmt_sequences(profile.history.expected_sequences) + "\n\n")
+            w(fmt_sequences(profile.expected_sequences) + "\n\n")
         w("==============================\n\n")
         self._file.flush()
 
@@ -117,13 +117,12 @@ class StableHistoryWriter(BaseHistoryWriter):
             return '"' + s.replace('"', '\\"') + '"'
 
         def fmt_counters(p: Profile) -> dict[str, int]:
-            return {
-                state.name: p.counters.get(state.cls_id)
-                for state in p.states.values()
-            }
+            """ Возвращает словарь {имя состояния: количество}. """
+            return {state.name: count for state, count in p.get_counters().items()}
 
         def fmt_history(p: Profile) -> str:
-            return f"[{', '.join(yaml_str(s.name) for s in p.history.records)}]"
+            """ Возвращает YAML-строку с историей состояний. """
+            return f"[{', '.join(yaml_str(s.name) for s in p.get_history())}]"
 
         w = self._file.write
         w("\n------------------------------\nRUNTIME:\n")

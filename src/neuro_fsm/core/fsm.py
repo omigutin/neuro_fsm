@@ -117,11 +117,13 @@ class Fsm:
 
         return FsmResult(
             active_profile=self._profile_manager.active_profile.name,
+            prev_profile=self._profile_manager.prev_active_profile.name,
             state=self._profile_manager.active_profile.cur_state,
             resetter=self._profile_manager.active_profile.is_resetter,
             breaker=self._profile_manager.active_profile.is_breaker,
             stable=self._profile_manager.active_profile.is_stable,
-            is_profile_changed=is_profile_changed,
             stage_done=stage_done,
-            # counters=self._profile_manager.active_profile._counters.copy(),
+            profile_changed=is_profile_changed,
+            counters=self._profile_manager.active_profile.get_counters(),
+            history=self._profile_manager.active_profile.get_history(),
         )

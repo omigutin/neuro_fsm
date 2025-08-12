@@ -55,8 +55,8 @@ class FsmResult:
     stable: bool
     stage_done: bool
     profile_changed: bool
-    counters: dict[State, int]
-    history: StateTuple
+    counters: dict['State', int]
+    history: 'StateTuple'
 
     def to_dict(self) -> dict:
         return {
