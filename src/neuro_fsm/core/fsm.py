@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ['Fsm']
 
+from datetime import datetime
 from typing import Optional, Any
 
 from ..config_parser.parsing_utils import normalize_enum_str
@@ -34,7 +35,6 @@ class Fsm:
         self._enable: bool = config.enable
         self._meta: dict[str, Any] = config.meta
         self._raw_history = RawStateHistory()
-
         self._profile_manager: ProfileManager = ProfileManager(
             state_configs=config.states,
             profile_configs=config.profile_configs,
@@ -42,7 +42,6 @@ class Fsm:
             def_profile=config.def_profile,
             profile_ids_map=config.profile_ids_map
         )
-
         # Писатель сырой истории
         self._raw_history_writer = RawHistoryWriter(config.raw_history_writer)
         # Писатель стабильной истории
@@ -50,11 +49,19 @@ class Fsm:
         # Записываем настройки и конфигурацию профилей
         self._stable_history_writer.write_configs(config.to_dict())
         self._stable_history_writer.write_profile_configs(self._profile_manager._profiles)
+        # Результат работы fsm
+        self._result: Optional[FsmResult] = None
+        self._step_index: int = 0
 
     @property
     def active(self) -> ActiveProfileView:
         """ Read-only представление активного профиля. """
         return ActiveProfileView(self._profile_manager.active_profile)
+
+    @property
+    def result(self) -> Optional[FsmResult]:
+        """ Последний FsmResult или None, если ещё не было шагов/последний сброшен. """
+        return self._result
 
     def switch_profile_by_pid(self, pid: Optional[int]) -> None:
         """ Сменить активный профиль по id продукции (используется при ручной или полуавтоматической стратегии). """
@@ -80,6 +87,7 @@ class Fsm:
             Returns:
                 FsmResult: Результат обработки (для стабильной истории или внешней логики).
         """
+        self._step_index += 1
         is_profile_changed: bool = False
 
         self._profile_manager.register_state(cls_id)
@@ -115,7 +123,7 @@ class Fsm:
         if stage_done or is_profile_changed:
             self._stable_history_writer.write_runtime(self._profile_manager.profiles, self._profile_manager.active_profile)
 
-        return FsmResult(
+        result = FsmResult(
             active_profile=self._profile_manager.active_profile.name,
             prev_profile=self._profile_manager.prev_active_profile.name,
             state=self._profile_manager.active_profile.cur_state,
@@ -126,4 +134,13 @@ class Fsm:
             profile_changed=is_profile_changed,
             counters=self._profile_manager.active_profile.get_counters(),
             history=self._profile_manager.active_profile.get_history(),
+            step_index=self._step_index,
+            timestamp=datetime.now(),
         )
+        self._result = result
+
+        return result
+
+    def reset(self) -> None:
+        self._result = None
+        self._step_index = 0

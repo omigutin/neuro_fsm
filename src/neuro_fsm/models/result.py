@@ -1,10 +1,11 @@
 __all__ = ['FsmResult']
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..core.states import State, StateTuple
+    from ..core.states import State
 
 @dataclass(frozen=True, slots=True)
 class FsmResult:
@@ -56,7 +57,10 @@ class FsmResult:
     stage_done: bool
     profile_changed: bool
     counters: dict['State', int]
-    history: 'StateTuple'
+    history:  list['State']
+    # метаданные свежести:
+    step_index: int
+    timestamp: datetime
 
     def to_dict(self) -> dict:
         return {
