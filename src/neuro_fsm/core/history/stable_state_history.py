@@ -22,8 +22,8 @@ class StableStateHistory(BaseStateHistory):
         self._history_min_len: int = min(len(seq) for seq in self._expected_sequences)
 
     @property
-    def expected_sequences(self) -> StateTupleTuple:
-        return self._expected_sequences
+    def records(self) -> list[State]:
+        return list(self._records)
 
     def last(self) -> State | None:
         """ Возвращает последнее состояние (если есть). """
@@ -66,3 +66,7 @@ class StableStateHistory(BaseStateHistory):
             if all(h.cls_id == e.cls_id for h, e in zip(history_tail, expected_seq)):
                 return False  # ещё возможен матч
         return True
+
+    def as_dict(self) -> dict:
+        """ Сериализует только текущую историю состояний. """
+        return {"records": [state.to_dict() for state in self._records]}

@@ -51,10 +51,10 @@ class Fsm:
         self._stable_history_writer.write_configs(config.to_dict())
         self._stable_history_writer.write_profile_configs(self._profile_manager._profiles)
 
-    # @property
-    # def active_profile(self) -> Profile:
-    #     """ Возвращает текущий активный профиль машины состояний. """
-    #     return self._profile_manager.active_profile
+    @property
+    def active(self) -> ActiveProfileView:
+        """ Read-only представление активного профиля. """
+        return ActiveProfileView(self._profile_manager.active_profile)
 
     def switch_profile_by_pid(self, pid: Optional[int]) -> None:
         """ Сменить активный профиль по id продукции (используется при ручной или полуавтоматической стратегии). """

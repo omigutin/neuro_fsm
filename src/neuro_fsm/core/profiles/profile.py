@@ -1,6 +1,6 @@
 __all__ = ['Profile']
 
-from ..states import State, StateTuple, StateDict
+from ..states import State, StateTuple, StateDict, StateTupleTuple
 from ..counters import StableStateCounters
 from ..history import StableStateHistory
 
@@ -18,7 +18,7 @@ class Profile:
             states: StateDict,
             init_states: StateTuple,
             default_states: StateTuple,
-            expected_sequences: tuple[StateTuple, ...],
+            expected_sequences: StateTupleTuple,
             description: str = ""
         ) -> None:
         self._name: str  = name
@@ -27,6 +27,7 @@ class Profile:
         self._states: StateDict = states  # dict[cls_id, State]
         self._init_states: StateTuple = init_states
         self._default_states: StateTuple = default_states
+        self._expected_sequences: StateTupleTuple = expected_sequences
         self._cur_state: State = self._init_states[-1]
 
         self._counters = StableStateCounters(states)
@@ -60,8 +61,14 @@ class Profile:
         return self._default_states
 
     @property
-    def counters(self) -> StableStateCounters:
-        return self._counters
+    def expected_sequences(self) -> StateTupleTuple:
+        return self._expected_sequences
+
+    @property
+    def counters(self) -> dict[State, int]:
+        """ Возвращает словарь {State: count}, что удобно для логирования и отображения. """
+        counters = self._counters.as_dict()
+        return {self._states[cls_id]: count for cls_id, count in counters.items()}
 
     @property
     def history(self) -> StableStateHistory:
