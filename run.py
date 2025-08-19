@@ -5,7 +5,7 @@ from rich.table import Table
 from rich.console import Console
 from rich import box
 
-from neuro_fsm.models.result import FsmResult
+from src.neuro_fsm.models.result import FsmResult
 from src.neuro_fsm.core import FsmManager, Fsm
 from tests.test_configs.state_cls_with_profiles_cfg import (StateClsWithProfilesConfig,
                                                             TEST_SEQUENCES_FOR_DEFAULT,

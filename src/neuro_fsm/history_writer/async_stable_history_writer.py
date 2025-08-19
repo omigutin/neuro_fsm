@@ -55,7 +55,7 @@ class AsyncStableHistoryWriter(BaseHistoryWriter):
         for profile in profiles.values():
             await self._awrite(f"PROFILE_NAME: '{profile.name}'\n")
             await self._awrite("\tSTATES:\n")
-            for state in profile.states.values():
+            for state in profile.state_configs.values():
                 await self._awrite(
                     f"\t\t{{cls_id: {state.cls_id}, name: '{state.name}', "
                     f"stable_min_lim: {state.stable_min_lim}, resettable: {state.is_resettable}}}\n"

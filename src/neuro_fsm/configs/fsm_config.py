@@ -48,7 +48,7 @@ class FsmConfig:
         return self._enable
 
     @property
-    def states(self) -> StateConfigDict:
+    def state_configs(self) -> StateConfigDict:
         """ Словарь доступных состояний. """
         return self._state_configs
 
@@ -81,7 +81,7 @@ class FsmConfig:
         return self._stable_history_writer
 
     def get_state_by_cls_id(self, cls_id: int) -> Optional[StateConfig]:
-        return self.states.get(cls_id) if self.states else None
+        return self.state_configs.get(cls_id) if self.state_configs else None
 
     def get_state_threshold_by_cls_id(self, cls_id: int) -> Optional[float]:
         """

@@ -90,28 +90,28 @@ class StableHistoryWriter(BaseHistoryWriter):
             w(f"    default_states: {fmt_state_names(profile.default_states)}\n")
             w("    expected_sequences:\n")
             w(fmt_sequences(profile.expected_sequences) + "\n\n")
-        w("==============================\n\n")
+        w("# =====================================================================================================================#\n")
         self._file.flush()
 
     def write_state(self, state: State) -> None:
-        """Записывает событие состояния в YAML-формате (без библиотеки)."""
+        """ Записывает событие состояния в YAML-формате (без библиотеки). """
         self.open()
         self._ensure_events()
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        self._file.write(f"\t- state: \"{state.name} [{timestamp}]\"\n")
+        self._file.write(f"\t-  time: [{datetime.now().strftime('%H:%M:%S')}], state: \"{state.name}\"\n")
         self._file.flush()
 
-    def write_action(self, action: str, active_profile: Profile) -> None:
-        """Записывает событие действия в YAML-формате (без библиотеки)."""
+    def write_action(self, cur_state: State, count: int, action: str, profile: Profile) -> None:
+        """ Записывает событие действия в YAML-формате (без библиотеки). """
         self.open()
         self._ensure_events()
-        self._file.write(f"\t- action:\n")
-        self._file.write(f"    {action}:\n")
-        self._file.write(f"      active_profile: {active_profile.name}\n")
+        self._file.write(
+            f"\t-  time: [{datetime.now().strftime('%H:%M:%S')}], "
+            f"state: \"{cur_state.name}\", profile: \"{profile.name}\", count: \"{count}\", action: \"{action}\"\n"
+        )
         self._file.flush()
 
     def write_runtime(self, profiles: ProfileDict, active_profile: Profile) -> None:
-        """Фиксирует текущее состояние всех профилей в чистом YAML."""
+        """ Фиксирует текущее состояние всех профилей в чистом YAML. """
 
         def yaml_str(s: str) -> str:
             return '"' + s.replace('"', '\\"') + '"'
@@ -125,10 +125,15 @@ class StableHistoryWriter(BaseHistoryWriter):
             return f"[{', '.join(yaml_str(s.name) for s in p.get_history())}]"
 
         w = self._file.write
-        w("\n------------------------------\nRUNTIME:\n")
-        w(f"  active_profile: {active_profile.name}\n")
-        w(f"  counters: {fmt_counters(active_profile)}\n")
-        w(f"  history: {fmt_history(active_profile)}\n\n")
+        w(
+            "\n#----------------------------------------------------------------------------------------------------------------------#"
+            "\nRUNTIME:\n"
+          )
+        w(f"  active_profile:\n")
+        w(f"    - profile_name: {active_profile.name}\n")
+        w(f"      counters: {fmt_counters(active_profile)}\n")
+        w(f"      history: {fmt_history(active_profile)}\n\n")
+
         w("  profiles:\n")
         for profile in profiles.values():
             if profile.name == active_profile.name:
@@ -136,7 +141,7 @@ class StableHistoryWriter(BaseHistoryWriter):
             w(f"    - profile_name: {profile.name}\n")
             w(f"      counters: {fmt_counters(profile)}\n")
             w(f"      history: {fmt_history(profile)}\n")
-        w("------------------------------\n")
+        w("#----------------------------------------------------------------------------------------------------------------------#\n")
         self._file.flush()
         self._events_started = False
         self.close()
@@ -144,16 +149,5 @@ class StableHistoryWriter(BaseHistoryWriter):
     def _ensure_events(self) -> None:
         """ Гарантирует наличие секции EVENTS. """
         if not self._events_started:
-            self._file.write('EVENTS:\n')
+            self._file.write('\nEVENTS:\n')
             self._events_started = True
-
-    @staticmethod
-    def _format_counters(profile: Profile) -> str:
-        counters = profile.counters.as_dict()
-        parts = [f"{state.name}: {counters[state.cls_id]}" for state in profile.states.values()]
-        return ', '.join(parts)
-
-    @staticmethod
-    def _format_history(profile: Profile) -> str:
-        names = [state.name for state in profile.history]
-        return ', '.join(names) + (', ' if names else '')

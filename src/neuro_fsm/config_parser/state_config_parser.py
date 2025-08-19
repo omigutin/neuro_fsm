@@ -2,7 +2,7 @@ __all__ = ['StateConfigParser']
 
 import warnings
 from dataclasses import replace
-from typing import Any, Sequence, Union
+from typing import Any, Sequence, Union, Optional
 from enum import Enum
 
 from ..configs.state_config import StateConfig, StateConfigDict
@@ -117,13 +117,14 @@ class StateConfigParser:
             Returns:
                 StateConfig: Объект состояния.
         """
+        stable_min_lim = source.get("stable_min_lim", None)
         return StateConfig(
             cls_id=source["cls_id"],
             name=source["name"],
             full_name=source.get("full_name", None),
             fiction=source.get("fiction", None),
             alias_of=source.get("alias_of", None),
-            stable_min_lim=source.get("stable_min_lim", None),
+            stable_min_lim=None if stable_min_lim and stable_min_lim < 0 else stable_min_lim,
             resettable=source.get("resettable", None),
             reset_trigger=source.get("reset_trigger", None),
             break_trigger=source.get("break_trigger", None),
@@ -140,13 +141,14 @@ class StateConfigParser:
                 State: экземпляр состояния.
         """
         obj = source.value if isinstance(source, Enum) else source
+        stable_min_lim = getattr(obj, "stable_min_lim", None)
         return StateConfig(
             cls_id=getattr(obj, "cls_id"),
             name=getattr(obj, "name"),
             full_name=getattr(obj, "full_name", None),
             fiction=getattr(obj, "fiction", None),
             alias_of=getattr(obj, "alias_of", None),
-            stable_min_lim=getattr(obj, "stable_min_lim", None),
+            stable_min_lim=None if stable_min_lim and stable_min_lim < 0 else stable_min_lim,
             resettable=getattr(obj, "resettable", None),
             reset_trigger=getattr(obj, "reset_trigger", None),
             break_trigger=getattr(obj, "break_trigger", None),
@@ -159,7 +161,7 @@ class StateConfigParser:
             Создаёт новый словарь состояний с применёнными override-параметрами.
             При отсутствии параметра в override используется значение из base.
         """
-        def _merge_value(override_val: float | None, base_val: float | None, default: float = 0.0) -> float | None:
+        def _merge_value(override_val: float | None, base_val: float | None, default: Optional[float] = 0.0) -> float | None:
             if override_val not in (None, default):
                 return override_val
             if base_val not in (None, default):
@@ -184,13 +186,15 @@ class StateConfigParser:
                     f"differs from override state name='{os.name}' for cls_id={cls_id}. Using base state name."
                 )
 
+            stable_min_lim = _merge_value(os.stable_min_lim, base_state.stable_min_lim, None)
+
             result[cls_id] = StateConfig(
                 cls_id=base_state.cls_id,
                 name=base_state.name,
                 full_name=os.full_name or base_state.full_name or "",
                 alias_of=os.alias_of or base_state.alias_of,
                 fiction=_merge_flag(os.fiction, base_state.fiction, False),
-                stable_min_lim=_merge_value(os.stable_min_lim, base_state.stable_min_lim, 0.0),
+                stable_min_lim=None if stable_min_lim and stable_min_lim < 0 else stable_min_lim,
                 resettable=_merge_flag(os.resettable, base_state.resettable, True),
                 reset_trigger=_merge_flag(os.reset_trigger, base_state.reset_trigger, False),
                 break_trigger=_merge_flag(os.break_trigger, base_state.break_trigger, False),

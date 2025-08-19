@@ -2,10 +2,13 @@ from __future__ import annotations
 
 __all__ = ['FsmManager']
 
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 
-from .fsm import Fsm
 from ..models import ProfileNames
+from .fsm import Fsm
+
+if TYPE_CHECKING:
+    from ..configs.state_config import StateConfigDict
 
 
 class FsmManager:
@@ -24,8 +27,13 @@ class FsmManager:
         """
         from ..configs import FsmConfig
         self._config: Optional[FsmConfig] = None
-        self.set_config(raw_config)
+        if raw_config: self.set_config(raw_config)
         self._fsms: list[Fsm] = []
+
+    @property
+    def state_configs(self) -> StateConfigDict:
+        """ Словарь допустимых статусов и их настроек. """
+        return self._config.state_configs
 
     def create_fsm(self, raw_config: Optional[Any] = None) -> Fsm:
         """
@@ -41,10 +49,28 @@ class FsmManager:
         return fsm
 
     def set_config(self, raw_config: Optional[Any] = None) -> None:
-        """ Устанавливает новую конфигурацию для последующих StateMachine. """
-        self._config = self._parse_raw_config(raw_config) if raw_config else self._config
+        """
+            Устанавливает новую конфигурацию для последующих StateMachine.
+            В случае ошибки или пустого конфига FSM выключается.
+        """
+        try:
+            if raw_config:
+                self._config = self._parse_raw_config(raw_config)
+        except Exception as e:
+            print(f"WARNING: FsmManager couldn't parse the raw_config. State machine OFF:\n{e}")
+            if self._config is not None:
+                self._config.enable = False
+            return
+
+        # Защита от ситуации, когда парсер вернул None
         if self._config is None:
-            raise ValueError(f"Config for state machine must be defined.")
+            print("WARNING: FsmManager got None config. State machine OFF.")
+            return
+
+        # Если enable отсутствует или None — выключаем
+        if getattr(self._config, "enable", None) is None:
+            print("WARNING: Config 'enable' is None. State machine OFF.")
+            self._config.enable = False
 
     @property
     def enable(self) -> bool:

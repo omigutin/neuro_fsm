@@ -21,7 +21,7 @@ class FsmResult:
                 Имя профиля ДО шага, если в ходе шага произошёл переключатель профиля.
                 None — если переключения не было.
             state (State):
-                Текущее стабильное состояние по завершении шага.
+                Текущее состояние по завершении шага.
             resetter (bool):
                 Флаг: текущее состояние является reset-триггером (инициирует сброс
                 счётчиков/истории по правилам профиля).
@@ -50,7 +50,7 @@ class FsmResult:
     """
     active_profile: str
     prev_profile: Optional[str]
-    state: 'State'
+    state: Optional['State']
     resetter: bool
     breaker: bool
     stable: bool
@@ -75,3 +75,21 @@ class FsmResult:
             "counters": self.counters,
             "history": self.history,
         }
+
+    @classmethod
+    def create_empty(cls) -> 'FsmResult':
+        """ Создаёт пустой результат на случай, если при выключенной fsm вызвали process_state. """
+        return cls(
+            active_profile="",
+            prev_profile=None,
+            state=None ,
+            resetter=False,
+            breaker=False,
+            stable=False,
+            stage_done=False,
+            profile_changed=False,
+            counters={},
+            history=[],
+            step_index=0,
+            timestamp=datetime.now(),
+        )

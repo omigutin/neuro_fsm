@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any, ClassVar, Union, Iterable
 
 from ..configs.state_config import StateConfig, StateConfigDict, StateConfigTuple, StateConfigTupleTuple
-from ..configs.profile_config import ProfileConfig
 from ..configs.history_writer_config import HistoryWriterConfig
 from ..models import ProfileSwitcherStrategies, ProfileNames
 from .parsing_utils import normalize_enum_str

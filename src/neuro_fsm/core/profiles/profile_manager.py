@@ -1,6 +1,6 @@
 __all__ = ['ProfileManager']
 
-from typing import Iterator, Optional
+from typing import Iterator, Optional, TYPE_CHECKING
 
 from ...configs.profile_config import ProfileConfig, ProfileConfigTuple
 from ...configs.state_config import StateConfigDict
@@ -9,6 +9,9 @@ from ..states import StateFactory
 from .profile_switcher import ProfileSwitcher
 from .profile import Profile
 from .types import ProfileDict
+
+if TYPE_CHECKING:
+    from ...history_writer import StableHistoryWriter
 
 
 class ProfileManager:
@@ -50,15 +53,22 @@ class ProfileManager:
             profile.set_cur_state_by_id(cls_id)
             profile.increment_counter()
 
-    def commit_stable_states(self) -> None:
+    def commit_stable_states(self, writer: "StableHistoryWriter") -> None:
+        """ Проверяет на стабильность текущее состояние во всех профилях """
         for profile in self._profiles.values():
-            if profile.is_stable:
-                profile.add_cur_state_to_history()
+            if profile.is_state_stable():
+                if profile.add_cur_state_to_history():
+                    writer.write_action(
+                        cur_state=profile.cur_state,
+                        count=profile.get_counter_by_cls_id(profile.cur_state.cls_id),
+                        action="add_state_to_history",
+                        profile=profile
+                    )
                 profile.reset_counters(only_resettable=False, except_cur_state=True)
 
     def reset_by_trigger(self) -> None:
         for profile in self._profiles.values():
-            if profile.is_resetter:
+            if profile.is_cur_state_resetter():
                 profile.reset_counters(only_resettable=True, except_cur_state=True)
 
     def switch_profile_by_pid(self, pid: Optional[int]) -> None:

@@ -1,8 +1,13 @@
 __all__ = ['Profile']
 
+from typing import TYPE_CHECKING, Optional
+
 from ..states import State, StateTuple, StateDict, StateTupleTuple
 from ..counters import StableStateCounters
 from ..history import StableStateHistory
+
+if TYPE_CHECKING:
+    from ...history_writer import StableHistoryWriter
 
 class Profile:
     """
@@ -64,17 +69,23 @@ class Profile:
     def expected_sequences(self) -> StateTupleTuple:
         return self._expected_sequences
 
-    @property
-    def is_resetter(self) -> bool:
+    def is_cur_state_resetter(self) -> bool:
         return self._cur_state.is_resetter
 
-    @property
-    def is_breaker(self) -> bool:
+    def is_cur_state_breaker(self) -> bool:
         return self._cur_state.is_breaker
 
-    @property
-    def is_stable(self) -> bool:
-        return self._counters.get(self._cur_state.cls_id) >= self._cur_state.stable_min_lim
+    def is_state_stable(self, cur_state: Optional[State] = None) -> bool:
+        """ Определяет стабильное ли состояние. Если stable_min_lim не задано, то состояние не может быть стабильным """
+        state = cur_state if cur_state else self._cur_state
+        if state.stable_min_lim and state.stable_min_lim >= 0:
+            return self._counters.get(state.cls_id) >= state.stable_min_lim
+        else:
+            return False
+
+    def get_counter_by_cls_id(self, cls_id: int) -> int:
+        """ Возвращает счётчик состояния, найденного по cls_id. """
+        return self._counters.get(cls_id)
 
     def get_counters(self) -> dict[State, int]:
         """ Возвращает словарь {State: count}, что удобно для логирования и отображения. """
@@ -84,13 +95,23 @@ class Profile:
     def get_history(self) -> list[State]:
         return self._history.records
 
-    def is_expected_seq_valid(self) -> bool:
-        return self._history.is_valid()
+    def is_expected_seq_valid(self, writer: "StableHistoryWriter") -> bool:
+        if self._history.is_valid():
+            writer.write_action(
+                cur_state=self.cur_state,
+                count=self.get_counter_by_cls_id(self.cur_state.cls_id),
+                action="expected_seq_done",
+                profile=self
+            )
+            return True
+        return False
 
-    def add_cur_state_to_history(self) -> None:
+    def add_cur_state_to_history(self) -> bool:
         cur_state_count = self._counters.get(self._cur_state.cls_id)
         if self._history.is_different_from_last(self._cur_state) and cur_state_count >= self._cur_state.stable_min_lim:
             self._history.add(self._cur_state)
+            return True
+        return False
 
     def reset_counters(self, only_resettable: bool, except_cur_state: bool) -> None:
         """

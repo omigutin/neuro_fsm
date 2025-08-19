@@ -21,7 +21,7 @@ class State:
     full_name: str = ""
     is_fiction: bool = False
     alias_of: Optional[int] = None
-    stable_min_lim: int = 0.0
+    stable_min_lim: Optional[int] = None
     is_resettable: bool = True
     is_resetter: bool = False
     is_breaker: bool = False

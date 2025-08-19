@@ -4,10 +4,11 @@ __all__ = ["ActiveProfileView"]
 
 from typing import Optional, TYPE_CHECKING
 
+from .profiles.profile import Profile
+
 if TYPE_CHECKING:
-    from .profiles.profile import Profile
     from .states.state import State
-    from .states.types import StateTuple
+    from .states.types import StateTuple, StateDict
 
 
 class ActiveProfileView:
@@ -24,12 +25,15 @@ class ActiveProfileView:
             - Импорты типов — только под TYPE_CHECKING, чтобы не ломать рантайм.
     """
 
-    def __init__(self, profile: "Profile") -> None:
-        self._active_profile = profile
+    def __init__(self, profile: Profile) -> None:
+        self._active_profile: Profile = profile
 
     @property
     def name(self) -> str:
         return self._active_profile.name
+
+    def states(self) -> 'StateDict':
+        return self._active_profile.states
 
     def init_states(self) -> "StateTuple":
         return self._active_profile.init_states
