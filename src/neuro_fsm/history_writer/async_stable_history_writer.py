@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __all__ = ["AsyncStableHistoryWriter"]
 
-from typing import Any, Dict, Iterable, Sequence, TYPE_CHECKING
+from typing import Any, dict, Iterable, Sequence, TYPE_CHECKING
 
 from ..configs.history_writer_config import HistoryWriterConfig
 from .base_history_writer import BaseHistoryWriter
@@ -38,7 +38,7 @@ class AsyncStableHistoryWriter(BaseHistoryWriter):
 
     # -------------------- Public Async API --------------------
 
-    async def write_configs(self, record: Dict[str, Any]) -> None:
+    async def write_configs(self, record: dict[str, Any]) -> None:
         """
             Один раз пишет общие настройки FSM.
         """

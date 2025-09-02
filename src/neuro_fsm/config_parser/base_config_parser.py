@@ -1,4 +1,4 @@
-__all__ = ['BaseconfigParser']
+__all__ = ['BaseConfigParser']
 
 from abc import ABC
 from enum import Enum
@@ -11,7 +11,7 @@ from .parsing_utils import normalize_enum_str
 from .config_keys import ConfigKeys
 
 
-class BaseconfigParser(ABC):
+class BaseConfigParser(ABC):
 
     FIELD_TYPES: ClassVar[dict[str, type]] = {}
 

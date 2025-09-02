@@ -3,7 +3,7 @@ __all__ = ['ParserFactory']
 from types import ModuleType
 from typing import Any
 
-from .parsing_utils import normalize_keys
+from .parsing_utils import normalize_dict_keys
 
 
 class ParserFactory:
@@ -42,4 +42,4 @@ class ParserFactory:
             config = vars(raw_config)
         else:
             raise TypeError(f"Unsupported config type: {type(raw_config)}")
-        return normalize_keys(config)
+        return normalize_dict_keys(config)

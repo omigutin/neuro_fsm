@@ -33,7 +33,7 @@ class ProfileManager:
             raise ValueError("No profiles initialized in StateProfilesManager")
         self._def_profile: str = def_profile
         self._active_profile: Profile = self._profiles[def_profile]
-        self._prev_active_profile: Profile = self._profiles[def_profile]
+        self._prev_active_profile: Optional[Profile] = None
         self._switcher: ProfileSwitcher = ProfileSwitcher(switcher_strategy, self._profiles, profile_ids_map)
 
     @property

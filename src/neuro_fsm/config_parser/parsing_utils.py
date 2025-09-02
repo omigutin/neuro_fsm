@@ -1,4 +1,4 @@
-__all__ = ['parse_bool', 'normalize_keys', 'normalize_enum_str']
+__all__ = ['parse_bool', 'normalize_dict_keys', 'normalize_enum_str']
 
 from enum import Enum
 from typing import Any, Type, Optional, TypeVar, Union
@@ -13,7 +13,7 @@ def parse_bool(value: Any) -> bool:
         return value.strip().lower() in ('1', 'true', 'yes')
     raise ValueError(f"[parse_bool]  Cannot convert {value!r} to bool")
 
-def normalize_keys(config: dict[str, Any]) -> dict[str, Any]:
+def normalize_dict_keys(config: dict[str, Any]) -> dict[str, Any]:
     """ Преобразует все ключи словаря к верхнему регистру. Не затрагивает вложенные словари. """
     return {k.upper(): v for k, v in config.items()}
 

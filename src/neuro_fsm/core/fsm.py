@@ -51,13 +51,14 @@ class Fsm:
         self._stable_history_writer.write_configs(config.to_dict())
         self._stable_history_writer.write_profile_configs(self._profile_manager.profiles)
         # Результат работы fsm
+        self._profile_view = ActiveProfileView(self._profile_manager)
         self._result: Optional[FsmResult] = None
         self._step_index: int = 0
 
     @property
     def profile(self) -> ActiveProfileView:
         """ Read-only представление активного профиля. """
-        return ActiveProfileView(self._profile_manager.active_profile)
+        return self._profile_view
 
     @property
     def result(self) -> Optional[FsmResult]:
@@ -124,8 +125,14 @@ class Fsm:
 
         # Проверяем, сработала ли последовательность из активного профиля
         stage_done = self._profile_manager.active_profile.is_expected_seq_valid(self._stable_history_writer)
-        if not stage_done:
-            # Если ожидаемая последовательность НЕ сработала, то проверяем не надо ли сменить активный профиль
+
+        # Если выполнилась ожидаемая последовательность, то скидываем до исходного состояния
+        if stage_done:
+            self._profile_manager.active_profile.reset_to_init_state()
+            self._stable_history_writer.write_runtime(self._profile_manager.profiles,
+                                                      self._profile_manager.active_profile)
+        # Если ожидаемая последовательность НЕ сработала, то проверяем не надо ли сменить активный профиль
+        else:
             is_profile_changed = self._profile_manager.update_active_profile()
             if is_profile_changed:
                 self._stable_history_writer.write_action(
@@ -134,15 +141,14 @@ class Fsm:
                     action="profile_changed",
                     profile=self._profile_manager.active_profile
                 )
+                self._stable_history_writer.write_runtime(self._profile_manager.profiles,
+                                                          self._profile_manager.active_profile)
                 # self._raw_history.recalculate_for(self._profile_manager.active_profile)
                 self._profile_manager.active_profile.reset_to_init_state()
 
-        if stage_done or is_profile_changed:
-            self._stable_history_writer.write_runtime(self._profile_manager.profiles, self._profile_manager.active_profile)
-
         result = FsmResult(
             active_profile=self._profile_manager.active_profile.name,
-            prev_profile=self._profile_manager.prev_active_profile.name,
+            prev_profile=self._profile_manager.prev_active_profile.name if self._profile_manager.prev_active_profile else "",
             state=cur_state,
             resetter=cur_state.is_resetter,
             breaker=cur_state.is_breaker,

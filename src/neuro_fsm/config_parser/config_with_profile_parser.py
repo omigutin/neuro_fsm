@@ -6,13 +6,13 @@ from enum import Enum
 from typing import Optional, ClassVar
 
 from ..configs import FsmConfig, ProfileConfig
-from .base_config_parser import BaseconfigParser
+from .base_config_parser import BaseConfigParser
 from .state_config_parser import StateConfigParser
 from .config_keys import ConfigKeys
-from .parsing_utils import normalize_keys, parse_bool
+from .parsing_utils import normalize_dict_keys, parse_bool
 
 
-class ConfigWithProfileParser(BaseconfigParser):
+class ConfigWithProfileParser(BaseConfigParser):
     """
         Парсер конфигурации машины состояний для формата с профилями.
         Пример входной структуры:
@@ -56,7 +56,7 @@ class ConfigWithProfileParser(BaseconfigParser):
         profile_configs: list[ProfileConfig] = []
 
         for profile in self._config[ConfigKeys.STATE_PROFILES]:
-            profile = normalize_keys(profile)
+            profile = normalize_dict_keys(profile)
             name = self._parse_profile_name(profile[ConfigKeys.PROFILE_NAME])
 
             profile_state_configs = StateConfigParser.build_dict_with_overrides(

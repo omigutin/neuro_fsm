@@ -2,13 +2,13 @@ __all__ = ['SimpleConfigParser']
 
 from typing import Optional, ClassVar
 from ..configs import FsmConfig, ProfileConfig
-from .base_config_parser import BaseconfigParser
+from .base_config_parser import BaseConfigParser
 from .state_config_parser import StateConfigParser
 from .config_keys import ConfigKeys
 from ..models import ProfileNames
 
 
-class SimpleConfigParser(BaseconfigParser):
+class SimpleConfigParser(BaseConfigParser):
     """
         Парсер простой конфигурации машины состояний без поддержки профилей.
     """

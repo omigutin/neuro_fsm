@@ -3,7 +3,7 @@ __all__ = ['BaseHistoryWriter']
 import os
 from datetime import datetime, timedelta
 from io import TextIOWrapper
-from typing import Any, Dict, Optional
+from typing import Any, dict, Optional
 
 from ..configs.history_writer_config import HistoryWriterConfig
 
@@ -28,7 +28,7 @@ class BaseHistoryWriter:
         if self._file is not None and not self._file.closed:
             self._file.close()
 
-    def write(self, record: Dict[str, Any]) -> None:
+    def write(self, record: dict[str, Any]) -> None:
         raise NotImplementedError
 
     @staticmethod

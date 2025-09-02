@@ -32,6 +32,15 @@ class ProfileConfig:
     default_states: StateConfigTuple
     expected_sequences: StateConfigTupleTuple
     description: str = ""
+    _mapped_ids: tuple[int, ...] = ()
+
+    def set_ids(self, ids: tuple[int, ...]) -> None:
+        """ Присваивает профилю внешний список id (in-place, контролируемо). """
+        object.__setattr__(self, "_mapped_ids", ids)
+
+    def get_ids(self) -> tuple[int, ...]:
+        """ Возвращает внешние id, привязанные к профилю (может быть пусто). """
+        return self._mapped_ids
 
     def get_state(self, state_or_id: StateConfigOrIdType) -> StateConfig:
         """

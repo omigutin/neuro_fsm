@@ -1,7 +1,7 @@
 __all__ = ['StableHistoryWriter']
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, dict
 
 from ..configs.history_writer_config import HistoryWriterConfig
 from ..core.profiles.profile import Profile
@@ -17,7 +17,7 @@ class StableHistoryWriter(BaseHistoryWriter):
         super().__init__(config, '.yaml')
         self._events_started = False
 
-    def write_configs(self, record: Dict[str, Any]) -> None:
+    def write_configs(self, record: dict[str, Any]) -> None:
         """Записывает общие настройки FSM в упрощённом и читабельном виде."""
         self._file.write("FSM_CONFIGURATION:\n")
         self._file.write(f"\tenable: {record.get('enable')}\n")
@@ -106,7 +106,7 @@ class StableHistoryWriter(BaseHistoryWriter):
         self._ensure_events()
         self._file.write(
             f"\t-  time: [{datetime.now().strftime('%H:%M:%S')}], "
-            f"state: \"{cur_state.name}\", profile: \"{profile.name}\", count: \"{count}\", action: \"{action}\"\n"
+            f"state: \"{cur_state.name}\", profile: [{profile.name}], count: \"{count}\", action: \"{action}\"\n"
         )
         self._file.flush()
 

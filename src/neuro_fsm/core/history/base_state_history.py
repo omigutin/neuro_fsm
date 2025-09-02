@@ -12,6 +12,7 @@ class BaseStateHistory(ABC):
 
     def __init__(self, max_len: int = 100) -> None:
         self._records: Deque[State] = deque(maxlen=max_len)
+        self._generation: int = 0  # id эпохи после сбросов
 
     @property
     def records(self) -> tuple[State, ...]:
@@ -23,8 +24,9 @@ class BaseStateHistory(ABC):
         self._records.extend(states)
 
     def clear(self) -> None:
-        """Очищает историю."""
+        """ Очищает историю. """
         self._records.clear()
+        self._generation += 1
 
     def __len__(self) -> int:
         return len(self._records)

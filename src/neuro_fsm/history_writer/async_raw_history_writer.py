@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __all__ = ["AsyncRawHistoryWriter"]
 
-from typing import Any, Dict, Iterable
+from typing import Any, dict, Iterable
 
 from ..configs.history_writer_config import HistoryWriterConfig
 from .base_history_writer import BaseHistoryWriter
@@ -22,7 +22,7 @@ class AsyncRawHistoryWriter(BaseHistoryWriter):
 
     # -------------------- Public Async API --------------------
 
-    async def write(self, record: Dict[str, Any]) -> None:
+    async def write(self, record: dict[str, Any]) -> None:
         """
             Асинхронно дописывает строку в raw-лог.
             Args:

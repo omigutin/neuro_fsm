@@ -79,7 +79,7 @@ class Profile:
         """ Определяет стабильное ли состояние. Если stable_min_lim не задано, то состояние не может быть стабильным """
         state = cur_state if cur_state else self._cur_state
         if state.stable_min_lim and state.stable_min_lim >= 0:
-            return self._counters.get(state.cls_id) >= state.stable_min_lim
+            return self._counters.get(state.cls_id) == state.stable_min_lim
         else:
             return False
 
@@ -100,7 +100,7 @@ class Profile:
             writer.write_action(
                 cur_state=self.cur_state,
                 count=self.get_counter_by_cls_id(self.cur_state.cls_id),
-                action="expected_seq_done",
+                action="EXPECTED_SEQ_DONE",
                 profile=self
             )
             return True
