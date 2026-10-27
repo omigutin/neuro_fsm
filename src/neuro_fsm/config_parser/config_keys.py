@@ -1,54 +1,34 @@
 __all__ = ['ConfigKeys']
 
+from typing import ClassVar
+
 
 class ConfigKeys:
-    """ Названия настроек, могут быть распарсены """
+    """ Ключи конфигурации в формате dict / класс / модуль (регистр ключей не важен). """
 
-    STATES = "STATES"
     ENABLE = "ENABLE"
-    PROFILE_NAME = "NAME"
+    STATES = "STATES"
     INIT_STATES = "INIT_STATES"
+    INIT_STATE = "INIT_STATE"                # совместимость с форматом pc_develop
     DEFAULT_STATES = "DEFAULT_STATES"
+    DEFAULT_STATE = "DEFAULT_STATE"          # совместимость с форматом pc_develop
     EXPECTED_SEQUENCES = "EXPECTED_SEQUENCES"
     STATE_PROFILES = "STATE_PROFILES"
+    PROFILE_NAME = "NAME"
+    PROFILE_DESCRIPTION = "DESCRIPTION"
     PROFILE_SWITCHER_STRATEGY = "PROFILE_SWITCHER_STRATEGY"
     DEFAULT_PROFILE = "DEFAULT_PROFILE"
-    RAW_HISTORY_WRITER = 'RAW_HISTORY_WRITER'
-    STABLE_HISTORY_WRITER = 'STABLE_HISTORY_WRITER'
-    PROFILE_IDS_MAP = 'PROFILE_IDS_MAP'
+    PROFILE_IDS_MAP = "PROFILE_IDS_MAP"
+    RAW_HISTORY_WRITER = "RAW_HISTORY_WRITER"
+    STABLE_HISTORY_WRITER = "STABLE_HISTORY_WRITER"
 
-    ALL = {
-        STATES,
-        ENABLE,
-        INIT_STATES,
-        DEFAULT_STATES,
+    ALL: ClassVar[frozenset[str]] = frozenset({
+        ENABLE, STATES, INIT_STATES, INIT_STATE, DEFAULT_STATES, DEFAULT_STATE, EXPECTED_SEQUENCES,
+        STATE_PROFILES, PROFILE_SWITCHER_STRATEGY, DEFAULT_PROFILE, PROFILE_IDS_MAP,
+        RAW_HISTORY_WRITER, STABLE_HISTORY_WRITER,
+    })
+
+    PROFILE_KEYS: ClassVar[frozenset[str]] = frozenset({
+        PROFILE_NAME, PROFILE_DESCRIPTION, STATES, INIT_STATES, INIT_STATE, DEFAULT_STATES, DEFAULT_STATE,
         EXPECTED_SEQUENCES,
-        STATE_PROFILES,
-        PROFILE_SWITCHER_STRATEGY,
-        DEFAULT_PROFILE,
-        RAW_HISTORY_WRITER,
-        STABLE_HISTORY_WRITER,
-        PROFILE_IDS_MAP,
-    }
-
-    @classmethod
-    def __iter__(cls):
-        return iter(cls.ALL)
-
-    @classmethod
-    def __contains__(cls, item):
-        return item in cls.ALL
-
-    @classmethod
-    def __getitem__(cls, key: str) -> str:
-        if key in cls.ALL:
-            return key
-        raise KeyError(f"Invalid config key: {key}")
-
-    @classmethod
-    def values(cls) -> set[str]:
-        return cls.ALL.copy()
-
-    @classmethod
-    def as_list(cls) -> list[str]:
-        return list(cls.ALL)
+    })

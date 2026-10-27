@@ -2,41 +2,28 @@ from __future__ import annotations
 
 __all__ = ["ActiveProfileView"]
 
-from typing import Optional, TYPE_CHECKING, Any
-
-from .profiles.profile import Profile
+from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .profiles.profile_manager import ProfileManager
     from .states.state import State
-    from .states.types import StateTuple, StateDict
+    from .states.types import StateTuple, StateDict, StateTupleTuple
 
 
 class ActiveProfileView:
     """
         Read-only фасад активного профиля для внешних потребителей.
-        Даёт доступ к настройкам и атрибутам профиля, не раскрывая его реализацию
-        и не позволяя мутировать внутренние структуры.
-        Назначение:
-            - получить пороги/флаги состояний (breaker/resetter/resettable);
-            - прочитать дефолтные/инициализационные состояния;
-            - читать ожидаемые последовательности в безопасном виде.
-        Внимание:
-            - Не хранит тяжёлых ссылок на профиль; проксирует через ProfileManager к текущему active_profile.
-            - Импорты типов — только под TYPE_CHECKING, чтобы не ломать рантайм.
+        Всегда отражает текущий активный профиль (проксирует через ProfileManager),
+        не даёт доступа к методам, меняющим состояние профиля.
     """
 
     __slots__ = ("_mgr",)
+    _mgr: ProfileManager
 
-    def __init__(self, mgr: "ProfileManager") -> None:
-        super().__setattr__("_mgr", mgr)
+    def __init__(self, mgr: ProfileManager) -> None:
+        object.__setattr__(self, "_mgr", mgr)
 
-    # Универсальный прокси: любые НЕ найденные атрибуты → к текущему active_profile
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._mgr.active_profile, name)
-
-    # Запрещаем мутацию через view
-    def __setattr__(self, key: str, value: Any) -> None:
+    def __setattr__(self, key: str, value: object) -> None:
         raise AttributeError("ActiveProfileView is read-only")
 
     @property
@@ -44,38 +31,72 @@ class ActiveProfileView:
         return self._mgr.active_profile.name
 
     @property
-    def states(self) -> "StateDict":
-        return self._mgr.active_profile.states
+    def description(self) -> str:
+        return self._mgr.active_profile.description
 
     @property
-    def init_state(self) -> "State":
+    def states(self) -> StateDict:
+        """ Копия словаря состояний профиля. """
+        return dict(self._mgr.active_profile.states)
+
+    @property
+    def cur_state(self) -> State:
+        return self._mgr.active_profile.cur_state
+
+    @property
+    def init_state(self) -> State:
         return self._mgr.active_profile.init_states[-1]
 
     @property
-    def init_states(self) -> "StateTuple":
+    def init_states(self) -> StateTuple:
         return self._mgr.active_profile.init_states
 
     @property
-    def default_state(self) -> "State":
-        return self._mgr.active_profile.default_states[-1]
+    def default_state(self) -> Optional[State]:
+        default_states = self._mgr.active_profile.default_states
+        return default_states[-1] if default_states else None
 
     @property
-    def default_states(self) -> "StateTuple":
+    def default_states(self) -> StateTuple:
         return self._mgr.active_profile.default_states
 
     @property
+    def expected_sequences(self) -> StateTupleTuple:
+        return self._mgr.active_profile.expected_sequences
+
+    @property
     def expected_sequences_names(self) -> tuple[tuple[str, ...], ...]:
-        ap = self._mgr.active_profile
-        return tuple(tuple(s.name for s in seq) for seq in ap.expected_sequences)
+        return tuple(tuple(s.name for s in seq) for seq in self._mgr.active_profile.expected_sequences)
+
+    @property
+    def counters(self) -> dict[State, int]:
+        return self._mgr.active_profile.get_counters()
+
+    @property
+    def history(self) -> tuple[State, ...]:
+        return self._mgr.active_profile.get_history()
+
+    def get_state(self, cls_id: int) -> Optional[State]:
+        return self._mgr.active_profile.states.get(cls_id)
+
+    def get_counter(self, cls_id: int) -> int:
+        return self._mgr.active_profile.get_counter_by_cls_id(cls_id)
 
     def get_threshold(self, cls_id: int) -> Optional[float]:
-        return self._mgr.active_profile.states[cls_id].threshold
+        state = self.get_state(cls_id)
+        return state.threshold if state else None
 
     def is_breaker(self, cls_id: int) -> bool:
-        return self._mgr.active_profile.states[cls_id].is_breaker
+        state = self.get_state(cls_id)
+        return state.is_breaker if state else False
 
     def is_resetter(self, cls_id: int) -> bool:
-        return self._mgr.active_profile.states[cls_id].is_resetter
+        state = self.get_state(cls_id)
+        return state.is_resetter if state else False
 
     def is_resettable(self, cls_id: int) -> bool:
-        return self._mgr.active_profile.states[cls_id].is_resettable
+        state = self.get_state(cls_id)
+        return state.is_resettable if state else False
+
+    def __repr__(self) -> str:
+        return f"<ActiveProfileView {self.name}>"

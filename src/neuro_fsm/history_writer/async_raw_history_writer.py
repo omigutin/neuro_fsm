@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __all__ = ["AsyncRawHistoryWriter"]
 
-from typing import Any, dict, Iterable
+from typing import Any, Iterable
 
 from ..configs.history_writer_config import HistoryWriterConfig
 from .base_history_writer import BaseHistoryWriter
@@ -17,7 +17,6 @@ class AsyncRawHistoryWriter(BaseHistoryWriter):
     """
 
     def __init__(self, config: HistoryWriterConfig) -> None:
-        # Используем базовую подготовку пути/ротацию, но self._file не задействуем
         super().__init__(config, ".txt")
 
     # -------------------- Public Async API --------------------
@@ -31,7 +30,7 @@ class AsyncRawHistoryWriter(BaseHistoryWriter):
         """
         try:
             import aiofiles  # noqa: WPS433
-        except Exception as exc:  # pragma: no cover
+        except ImportError as exc:  # pragma: no cover
             raise RuntimeError(
                 "AsyncRawHistoryWriter requires 'aiofiles' to be installed."
             ) from exc

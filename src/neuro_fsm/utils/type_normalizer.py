@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __all__ = ["TypeNormalizer", "CaseMode", "HasName"]
 
-from typing import Any, tuple, Union, Literal, runtime_checkable, Protocol, final
+from typing import Any, Union, Literal, runtime_checkable, Protocol, final
 from enum import Enum
 
 
@@ -127,11 +127,32 @@ class TypeNormalizer:
             base = value.name
         else:
             raise TypeError(
-                f"normalize_to_str_name: неподдерживаемый тип {type(value)!r}; "
-                "ожидался str, Enum или объект с `name: str`."
+                f"normalize_to_str_name: unsupported type {type(value)!r}; "
+                "expected str, Enum or object with `name: str`."
             )
 
         return TypeNormalizer._apply_case(base, case)
+
+    @staticmethod
+    def normalize_state_ref_name(value: Union[str, Enum, HasName]) -> str:
+        """
+            Возвращает имя состояния из ссылки на него.
+            Правила:
+                - str → как есть;
+                - Enum, у значения которого есть строковый атрибут `name` (например, NNetClass) → value.name;
+                - прочие Enum → имя члена перечисления;
+                - объект с атрибутом `name: str` → .name.
+            Raises:
+                TypeError: если тип не поддерживается.
+        """
+        if isinstance(value, str):
+            return value
+        if isinstance(value, Enum):
+            inner_name = getattr(value.value, "name", None)
+            return inner_name if isinstance(inner_name, str) else value.name
+        if isinstance(value, HasName) and isinstance(value.name, str):
+            return value.name
+        raise TypeError(f"Cannot resolve state name from {value!r}")
 
     @staticmethod
     def _apply_case(s: str, mode: CaseMode) -> str:

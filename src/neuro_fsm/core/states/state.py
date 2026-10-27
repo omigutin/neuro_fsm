@@ -9,11 +9,11 @@ from typing import Optional
 @dataclass(frozen=True, slots=True)
 class State:
     """
-        Класс объединяет описание состояния (StateMeta) и поведенческие параметры (StateParams).
-        Используется в профилях машины состояний и хранит:
-        — идентификатор состояния,
-        — имя и отображаемое описание,
-        — логику обработки (сбросы, прерывания и т.д.).
+        Рабочее (полностью разрешённое) состояние профиля машины состояний.
+        Создаётся StateFactory из StateConfig; параметры приведены к конкретным значениям (порог и alias_of могут быть None).
+        stable_min_lim = None — состояние никогда не становится стабильным.
+        Равенство и хэш — по паре (cls_id, name): одно и то же состояние в разных профилях
+        считается одинаковым, даже если параметры отличаются.
     """
 
     cls_id: int
@@ -25,7 +25,7 @@ class State:
     is_resettable: bool = True
     is_resetter: bool = False
     is_breaker: bool = False
-    threshold: float = 0.0
+    threshold: Optional[float] = None
 
     def get_base_cls_id(self) -> int:
         """
@@ -34,7 +34,12 @@ class State:
         """
         return self.alias_of if self.alias_of is not None else self.cls_id
 
-    def to_dict(self) -> dict:
+    @property
+    def can_be_stable(self) -> bool:
+        """ True, если для состояния задан порог стабильности. """
+        return self.stable_min_lim is not None and self.stable_min_lim > 0
+
+    def to_dict(self) -> dict[str, object]:
         """
             Сериализует состояние в словарь.
             Returns:
@@ -57,7 +62,7 @@ class State:
         """ Возвращает строку для UI или логов. """
         return f"{self.name} (id={self.cls_id}) — {self.full_name or 'Без описания'}"
 
-    def __eq__(self, other: State) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
             Проверяет логическую идентичность двух состояний по имени и ID.
             Поведенческие параметры (params) не сравниваются.
@@ -70,6 +75,9 @@ class State:
         if not isinstance(other, State):
             return False
         return self.name == other.name and self.cls_id == other.cls_id
+
+    def __hash__(self) -> int:
+        return hash((self.cls_id, self.name))
 
     def __str__(self) -> str:
         """ Краткое строковое представление состояния. """

@@ -1,26 +1,20 @@
-__all__ = ['parse_bool', 'normalize_dict_keys', 'normalize_enum_str']
+__all__ = ['parse_bool']
 
-from enum import Enum
-from typing import Any, Type, Optional, TypeVar, Union
-
-E = TypeVar('E', bound=Enum)
+from typing import Any
 
 
-def parse_bool(value: Any) -> bool:
+def parse_bool(value: Any, default: bool) -> bool:
+    """ Приводит bool / int / str / None к bool. None → default. """
+    if value is None:
+        return default
     if isinstance(value, bool):
         return value
+    if isinstance(value, int):
+        return value != 0
     if isinstance(value, str):
-        return value.strip().lower() in ('1', 'true', 'yes')
-    raise ValueError(f"[parse_bool]  Cannot convert {value!r} to bool")
-
-def normalize_dict_keys(config: dict[str, Any]) -> dict[str, Any]:
-    """ Преобразует все ключи словаря к верхнему регистру. Не затрагивает вложенные словари. """
-    return {k.upper(): v for k, v in config.items()}
-
-def normalize_enum_str(value: Union[str, Enum], case: str = "lower") -> str:
-    """ Приводит Enum/str к строке-ключу в нужном регистре. """
-    if isinstance(value, Enum):
-        base = value.value if isinstance(value.value, str) else value.name
-    else:
-        base = str(value)
-    return base.lower() if case.lower() in ("lower", "l") else base.upper()
+        normalized = value.strip().lower()
+        if normalized in ('1', 'true', 'yes', 'on'):
+            return True
+        if normalized in ('0', 'false', 'no', 'off', ''):
+            return False
+    raise ValueError(f"[parse_bool] Cannot convert {value!r} to bool")

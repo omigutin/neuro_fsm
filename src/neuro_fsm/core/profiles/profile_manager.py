@@ -1,40 +1,38 @@
 __all__ = ['ProfileManager']
 
-from typing import Iterator, Optional, TYPE_CHECKING
+from enum import Enum
+from typing import Iterator, Optional, Union
 
 from ...configs.profile_config import ProfileConfig, ProfileConfigTuple
-from ...configs.state_config import StateConfigDict
-from ...models import ProfileSwitcherStrategies, ProfileNames
+from ...models import ProfileSwitcherStrategies
+from ...utils.type_normalizer import TypeNormalizer
 from ..states import StateFactory
 from .profile_switcher import ProfileSwitcher
 from .profile import Profile
 from .types import ProfileDict
 
-if TYPE_CHECKING:
-    from ...history_writer import StableHistoryWriter
-
 
 class ProfileManager:
     """
-        Менеджер всех профилей машины состояний.
-        Хранит активный профиль и управляет логикой обновления/сброса.
+        Менеджер профилей машины состояний.
+        Хранит профили и активный профиль, выполняет общие для всех профилей шаги обработки.
     """
 
     def __init__(
             self,
-            state_configs: StateConfigDict,
             profile_configs: ProfileConfigTuple,
             switcher_strategy: ProfileSwitcherStrategies,
             def_profile: str,
-            profile_ids_map
     ) -> None:
-        self._profiles: ProfileDict = self._build_profiles(state_configs, profile_configs)
+        self._profiles: ProfileDict = {cfg.name: self._build_profile(cfg) for cfg in profile_configs}
         if not self._profiles:
-            raise ValueError("No profiles initialized in StateProfilesManager")
+            raise ValueError("[ProfileManager] No profiles defined")
+        if def_profile not in self._profiles:
+            raise ValueError(f"[ProfileManager] Default profile {def_profile!r} not found")
         self._def_profile: str = def_profile
         self._active_profile: Profile = self._profiles[def_profile]
-        self._prev_active_profile: Optional[Profile] = None
-        self._switcher: ProfileSwitcher = ProfileSwitcher(switcher_strategy, self._profiles, profile_ids_map)
+        self._switcher = ProfileSwitcher(switcher_strategy, self._profiles, def_profile)
+        self._switcher.set_profile_ids_mapping({cfg.name: cfg.mapped_ids for cfg in profile_configs})
 
     @property
     def profiles(self) -> ProfileDict:
@@ -45,86 +43,76 @@ class ProfileManager:
         return self._active_profile
 
     @property
-    def prev_active_profile(self) -> Profile:
-        return self._prev_active_profile
+    def default_profile(self) -> Profile:
+        return self._profiles[self._def_profile]
 
-    def register_state(self, cls_id: int):
+    def register_state(self, cls_id: Optional[int]) -> None:
+        """ Передаёт входное состояние всем профилям. """
         for profile in self._profiles.values():
-            profile.set_cur_state_by_id(cls_id)
-            profile.increment_counter()
+            profile.register_state(cls_id)
 
-    def commit_stable_states(self, writer: "StableHistoryWriter") -> None:
-        """ Проверяет на стабильность текущее состояние во всех профилях """
+    def reset_by_trigger(self) -> None:
+        """ В профилях, где текущее состояние — триггер сброса, сбрасывает сбрасываемые счётчики. """
+        for profile in self._profiles.values():
+            if profile.cur_state.is_resetter:
+                profile.reset_counters(only_resettable=True, except_cur_state=True)
+
+    def commit_stable_states(self) -> list[Profile]:
+        """
+            Для профилей, где текущее состояние стало стабильным: добавляет его в историю
+            и сбрасывает остальные счётчики.
+            Returns:
+                Профили, в историю которых добавлено новое состояние.
+        """
+        added: list[Profile] = []
         for profile in self._profiles.values():
             if profile.is_state_stable():
                 if profile.add_cur_state_to_history():
-                    writer.write_action(
-                        cur_state=profile.cur_state,
-                        count=profile.get_counter_by_cls_id(profile.cur_state.cls_id),
-                        action="add_state_to_history",
-                        profile=profile
-                    )
+                    added.append(profile)
                 profile.reset_counters(only_resettable=False, except_cur_state=True)
+        return added
 
-    def reset_by_trigger(self) -> None:
+    def reset_all_to_init(self) -> None:
+        """ Сбрасывает счётчики и историю всех профилей. """
         for profile in self._profiles.values():
-            if profile.is_cur_state_resetter():
-                profile.reset_counters(only_resettable=True, except_cur_state=True)
+            profile.reset_to_init_state()
 
-    def switch_profile_by_pid(self, pid: Optional[int]) -> None:
-        """ Сменить активный профиль по указанному pid """
-        profile = self._switcher.choose_by_mapped_id(pid)
-        if profile and profile != self._active_profile:
-            self._active_profile = profile
+    def switch_profile_by_pid(self, pid: Optional[int]) -> bool:
+        """ Делает активным профиль по внешнему id. Returns: True, если профиль сменился. """
+        return self._set_active(self._switcher.choose_by_mapped_id(pid))
 
-    def switch_profile_by_name(self, profile_name: ProfileNames | str) -> None:
-        """ Сменить активный профиль по названию профиля. """
-        profile = self._switcher.choose_by_profile_name(profile_name)
-        if profile and profile != self._active_profile:
-            self._active_profile = profile
+    def switch_profile_by_name(self, profile_name: Union[str, Enum]) -> bool:
+        """ Делает активным профиль по имени. Returns: True, если профиль сменился. """
+        return self._set_active(self._switcher.choose_by_profile_name(profile_name))
 
     def update_active_profile(self) -> bool:
-        """ Определяет надо ли переключать профиль и если надо, то выставляет выбранный профиль активным """
-        valid_profile = self._switcher.choose_valid_profile(self._active_profile)
-        if valid_profile and valid_profile != self._active_profile:
-            self._prev_active_profile = self._profiles[self._active_profile.name]
-            self._active_profile = self._profiles[valid_profile.name]
-            return True
-        return False
+        """ Автоматически переключает профиль по стратегии. Returns: True, если профиль сменился. """
+        candidate = self._switcher.choose_valid_profile(self._active_profile)
+        return self._set_active(candidate) if candidate is not None else False
+
+    def _set_active(self, profile: Profile) -> bool:
+        if profile is self._active_profile:
+            return False
+        self._active_profile = profile
+        return True
 
     @staticmethod
-    def _build_profiles(config_states: StateConfigDict, profile_configs: ProfileConfigTuple) -> ProfileDict:
-        """ Создаёт все профили с собственными State-объектами."""
-        return {
-            profile_config.name: ProfileManager._build_profile(config_states, profile_config)
-            for profile_config in profile_configs
-        }
-
-    @staticmethod
-    def _build_profile(config_states: StateConfigDict, profile_config: ProfileConfig) -> Profile:
-        """ Для одного профиля создаёт структуру со ссылками на State """
-        state_dict = StateFactory.build(config_states, profile_config)
-
-        # Преобразуем init_states, default_states, expected_sequences к ссылкам на State
-        init_states = tuple(state_dict[s.cls_id] for s in profile_config.init_states)
-        default_states = tuple(state_dict[s.cls_id] for s in profile_config.default_states)
-        expected_sequences = tuple(
-            tuple(state_dict[s.cls_id] for s in seq)
-            for seq in profile_config.expected_sequences
-        )
-
+    def _build_profile(profile_config: ProfileConfig) -> Profile:
+        """ Создаёт рабочий профиль: State-объекты и ссылки на них в init/default/sequences. """
+        states = StateFactory.build(profile_config)
         return Profile(
             name=profile_config.name,
-            states=state_dict,
-            init_states=init_states,
-            default_states=default_states,
-            expected_sequences=expected_sequences,
+            states=states,
+            init_states=tuple(states[s.cls_id] for s in profile_config.init_states),
+            default_states=tuple(states[s.cls_id] for s in profile_config.default_states),
+            expected_sequences=tuple(
+                tuple(states[s.cls_id] for s in seq) for seq in profile_config.expected_sequences
+            ),
+            description=profile_config.description,
         )
 
-    def __getitem__(self, key: str | ProfileNames) -> Profile:
-        if isinstance(key, ProfileNames):
-            return self._profiles[key]
-        return next((p for k, p in self._profiles.items() if str(k).lower() == key.lower()), None)
+    def __getitem__(self, key: Union[str, Enum]) -> Profile:
+        return self._profiles[TypeNormalizer.normalize_to_str_name(key, case="lower")]
 
     def __iter__(self) -> Iterator[Profile]:
         return iter(self._profiles.values())

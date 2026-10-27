@@ -1,72 +1,56 @@
 __all__ = ['StableStateHistory']
 
-from ...configs import ProfileConfig
 from ..states import StateTupleTuple, State
 from .base_state_history import BaseStateHistory
 
 
 class StableStateHistory(BaseStateHistory):
     """
-        Хранит историю стабильных состояний и проверяет,
-        соответствует ли она одной из ожидаемых последовательностей.
+        История стабильных состояний профиля.
+        Проверяет, завершилась ли она одной из ожидаемых последовательностей и возможно ли ещё совпадение.
+        Состояния сравниваются по cls_id.
     """
 
     def __init__(self, expected_sequences: StateTupleTuple, max_len: int = 100) -> None:
-        """
-            Args:
-                config (ProfileConfig): Конфигурация профиля с init_states и expected_sequences.
-                max_len (int): Максимальная длина истории.
-        """
         super().__init__(max_len)
         self._expected_sequences: StateTupleTuple = expected_sequences
-        self._history_min_len: int = min(len(seq) for seq in self._expected_sequences)
-
-    @property
-    def records(self) -> list[State]:
-        return list(self._records)
 
     def last(self) -> State | None:
-        """ Возвращает последнее состояние (если есть). """
+        """ Последнее состояние истории или None. """
         return self._records[-1] if self._records else None
 
-    def is_different_from_last(self, *states: State) -> bool:
-        """
-            Проверяет, отличается ли новая последовательность состояний от последней части истории.
-            Returns:
-                True - если последовательность отличается.
-        """
-        history_tail = list(self._records)[-len(states):]
-        return any(h.cls_id != s.cls_id for h, s in zip(history_tail, states))
+    def is_different_from_last(self, state: State) -> bool:
+        """ True, если история пуста или последнее состояние отличается от переданного. """
+        return not self._records or self._records[-1].cls_id != state.cls_id
 
     def is_valid(self) -> bool:
-        """
-            Проверяет, завершена ли история ожидаемой последовательностью.
-            Returns:
-                True — если есть полное совпадение с одним из шаблонов.
-        """
-        if len(self._records) < self._history_min_len:
-            return False
-
+        """ True, если история заканчивается одной из ожидаемых последовательностей. """
+        records = self._records
         for expected_seq in self._expected_sequences:
-            if len(expected_seq) > len(self._records):
+            n = len(expected_seq)
+            if n > len(records):
                 continue
-
-            history_slice = list(self._records)[-len(expected_seq):]
-            if all(h.name == e.name for h, e in zip(history_slice, expected_seq)):
+            tail = list(records)[-n:]
+            if all(h.cls_id == e.cls_id for h, e in zip(tail, expected_seq)):
                 return True
+        return False
 
+    def is_possible(self) -> bool:
+        """
+            True, если хвост истории совпадает с началом хотя бы одной ожидаемой последовательности,
+            то есть последовательность ещё может завершиться.
+        """
+        records = list(self._records)
+        for expected_seq in self._expected_sequences:
+            for k in range(min(len(expected_seq), len(records)), 0, -1):
+                if all(h.cls_id == e.cls_id for h, e in zip(records[-k:], expected_seq[:k])):
+                    return True
         return False
 
     def is_impossible(self) -> bool:
-        """ Возвращает True, если история больше не может соответствовать ни одной ожидаемой последовательности. """
-        for expected_seq in self._expected_sequences:
-            if len(expected_seq) > len(self._records):
-                continue
-            history_tail = list(self._records)[-len(expected_seq):]
-            if all(h.cls_id == e.cls_id for h, e in zip(history_tail, expected_seq)):
-                return False  # ещё возможен матч
-        return True
+        """ True, если ни одна ожидаемая последовательность больше не может завершиться. """
+        return not self.is_possible()
 
-    def as_dict(self) -> dict:
-        """ Сериализует только текущую историю состояний. """
+    def as_dict(self) -> dict[str, list[dict[str, object]]]:
+        """ Сериализует текущую историю состояний. """
         return {"records": [state.to_dict() for state in self._records]}

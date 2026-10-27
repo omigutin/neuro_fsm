@@ -2,13 +2,14 @@ from __future__ import annotations
 
 __all__ = ["AsyncStableHistoryWriter"]
 
-from typing import Any, dict, Iterable, Sequence, TYPE_CHECKING
+from typing import Any, Iterable, TYPE_CHECKING
 
 from ..configs.history_writer_config import HistoryWriterConfig
 from .base_history_writer import BaseHistoryWriter
 
 if TYPE_CHECKING:
-    from ..core.profiles.profile import Profile, ProfileDict
+    from ..core.profiles.profile import Profile
+    from ..core.profiles.types import ProfileDict
     from ..core.states.state import State
 
 
@@ -28,7 +29,7 @@ class AsyncStableHistoryWriter(BaseHistoryWriter):
     async def _awrite(self, text: str) -> None:
         try:
             import aiofiles  # noqa: WPS433
-        except Exception as exc:  # pragma: no cover
+        except ImportError as exc:  # pragma: no cover
             raise RuntimeError(
                 "AsyncStableHistoryWriter requires 'aiofiles' to be installed."
             ) from exc
@@ -55,7 +56,7 @@ class AsyncStableHistoryWriter(BaseHistoryWriter):
         for profile in profiles.values():
             await self._awrite(f"PROFILE_NAME: '{profile.name}'\n")
             await self._awrite("\tSTATES:\n")
-            for state in profile.state_configs.values():
+            for state in profile.states.values():
                 await self._awrite(
                     f"\t\t{{cls_id: {state.cls_id}, name: '{state.name}', "
                     f"stable_min_lim: {state.stable_min_lim}, resettable: {state.is_resettable}}}\n"
@@ -101,13 +102,11 @@ class AsyncStableHistoryWriter(BaseHistoryWriter):
 
     @staticmethod
     def _format_counters(profile: "Profile") -> str:
-        counters = profile.counters.as_dict()
-        parts = [f"{state.name}: {counters[state.cls_id]}" for state in profile.states.values()]
-        return ", ".join(parts)
+        return ", ".join(f"{state.name}: {count}" for state, count in profile.get_counters().items())
 
     @staticmethod
     def _format_history(profile: "Profile") -> str:
-        names = [state.name for state in profile.history]
+        names = [state.name for state in profile.get_history()]
         return ", ".join(names) + (", " if names else "")
 
     # -------------------- Forbidden Sync API --------------------

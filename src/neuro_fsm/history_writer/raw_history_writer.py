@@ -5,9 +5,11 @@ from .base_history_writer import BaseHistoryWriter
 
 
 class RawHistoryWriter(BaseHistoryWriter):
-    def __init__(self, config: HistoryWriterConfig):
+    """ Писатель сырой истории: все входные cls_id через пробел. """
+
+    def __init__(self, config: HistoryWriterConfig) -> None:
         super().__init__(config, '.txt')
 
     def write(self, record: str) -> None:
-        self._file.write(record + ' ')
-        self._file.flush()
+        """ Дописывает одну запись. """
+        self._write(record + ' ')

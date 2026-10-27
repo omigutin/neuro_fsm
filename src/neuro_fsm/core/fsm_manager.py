@@ -2,121 +2,116 @@ from __future__ import annotations
 
 __all__ = ['FsmManager']
 
-from typing import Optional, Any, TYPE_CHECKING
+from enum import Enum
+from typing import Any, Iterator, Optional, Union
 
-from ..models import ProfileNames
+from ..configs import FsmConfig
+from ..configs.state_config import StateConfigDict
 from .fsm import Fsm
-
-if TYPE_CHECKING:
-    from ..configs.state_config import StateConfigDict
 
 
 class FsmManager:
     """
-        Менеджер конфигураций для машин состояний.
-        Отвечает за:
-        - загрузку и парсинг конфигурации;
-        - создание экземпляров StateMachine с актуальной конфигурацией.
+        Создаёт машины состояний по общей конфигурации и управляет ими пакетно.
+        Конфигурация принимается в любом поддерживаемом виде:
+            - FsmConfig или FsmConfigBuilder (основной способ);
+            - dict, класс или модуль с полями конфигурации (формат с профилями STATE_PROFILES
+              или простой формат STATES / EXPECTED_SEQUENCES / INIT_STATE(S) / DEFAULT_STATE(S)).
+        Ошибки конфигурации не глушатся: при некорректной конфигурации выбрасывается ValueError/TypeError.
     """
 
     def __init__(self, raw_config: Optional[Any] = None) -> None:
-        """
-            Инициализация менеджера. Может сразу принять конфигурацию.
-            Args:
-                raw_config: Сырые настройки (dict, объект, путь и т.д.)
-        """
-        from ..configs import FsmConfig
         self._config: Optional[FsmConfig] = None
-        if raw_config: self.set_config(raw_config)
         self._fsms: list[Fsm] = []
+        if raw_config is not None:
+            self.set_config(raw_config)
 
     @property
-    def state_configs(self) -> StateConfigDict:
-        """ Словарь допустимых статусов и их настроек. """
-        return self._config.state_configs
-
-    def create_fsm(self, raw_config: Optional[Any] = None) -> Fsm:
-        """
-            Создаёт новую машину состояний и возвращает её.
-            Args:
-                raw_config: Необязательная индивидуальная конфигурация.
-            Returns:
-                Fsm: новая машина состояний.
-        """
-        self.set_config(raw_config)
-        fsm = Fsm(self._config)
-        self._fsms.append(fsm)
-        return fsm
-
-    def set_config(self, raw_config: Optional[Any] = None) -> None:
-        """
-            Устанавливает новую конфигурацию для последующих StateMachine.
-            В случае ошибки или пустого конфига FSM выключается.
-        """
-        try:
-            if raw_config:
-                self._config = self._parse_raw_config(raw_config)
-        except Exception as e:
-            print(f"WARNING: FsmManager couldn't parse the raw_config. State machine OFF:\n{e}")
-            if self._config is not None:
-                self._config.enable = False
-            return
-
-        # Защита от ситуации, когда парсер вернул None
-        if self._config is None:
-            print("WARNING: FsmManager got None config. State machine OFF.")
-            return
-
-        # Если enable отсутствует или None — выключаем
-        if getattr(self._config, "enable", None) is None:
-            print("WARNING: Config 'enable' is None. State machine OFF.")
-            self._config.enable = False
+    def config(self) -> Optional[FsmConfig]:
+        """ Текущая конфигурация или None. """
+        return self._config
 
     @property
     def enable(self) -> bool:
-        """ True, если включено использование машины состояний. """
+        """ True, если конфигурация задана и FSM включена. """
         return self._config.enable if self._config else False
 
-    def switch_profile_by_pid(self, pid: int) -> None:
-        """ Сменить активный профиль по указанному pid для всех FSM """
-        for fsm in self._fsms:
+    @property
+    def state_configs(self) -> StateConfigDict:
+        """ Объединённая карта состояний текущей конфигурации. """
+        return self._require_config().state_configs
+
+    def set_config(self, raw_config: Any) -> None:
+        """ Устанавливает конфигурацию для последующих create_fsm(). Уже созданные FSM не меняются. """
+        self._config = self.parse_config(raw_config)
+
+    def create_fsm(self, raw_config: Optional[Any] = None) -> Fsm:
+        """
+            Создаёт новую машину состояний.
+            Args:
+                raw_config: индивидуальная конфигурация этой FSM; None — общая конфигурация менеджера.
+        """
+        config = self.parse_config(raw_config) if raw_config is not None else self._require_config()
+        fsm = Fsm(config)
+        self._fsms.append(fsm)
+        return fsm
+
+    def switch_profile_by_pid(self, pid: Optional[int]) -> None:
+        """ Меняет активный профиль по внешнему id у всех включённых FSM. """
+        for fsm in self._enabled_fsms():
             fsm.switch_profile_by_pid(pid)
 
-    def switch_profile_by_name(self, profile_name: ProfileNames | str) -> None:
-        """ Сменить активный профиль у всех FSM по названию профиля. """
-        for fsm in self._fsms:
+    def switch_profile_by_name(self, profile_name: Union[str, Enum]) -> None:
+        """ Меняет активный профиль по имени у всех включённых FSM. """
+        for fsm in self._enabled_fsms():
             fsm.switch_profile_by_name(profile_name)
 
-
-
-
     def reset_all(self) -> None:
-        """Сбросить все FSM."""
+        """ Сбрасывает все FSM. """
         for fsm in self._fsms:
-            fsm.reset_all_states()
+            fsm.reset()
 
-    def update_all(self, cls_id: int) -> None:
-        """Отправить новое состояние всем FSM (если нужно массовое обновление, например, при синхронизации)."""
+    def update_all(self, cls_id: Optional[int]) -> None:
+        """ Передаёт одно состояние всем FSM. """
         for fsm in self._fsms:
             fsm.process_state(cls_id)
 
     def get_statuses(self) -> dict[int, str]:
-        """Получить активные профили всех FSM."""
-        return {i: fsm.active_profile.name for i, fsm in enumerate(self._fsms)}
+        """ Имена активных профилей всех FSM по индексу ("" — FSM выключена). """
+        return {i: fsm.profile.name if fsm.enable else "" for i, fsm in enumerate(self._fsms)}
 
     def destroy(self) -> None:
-        """ Сбрасывает конфигурацию и список созданных машин. """
+        """ Закрывает писателей истории, сбрасывает конфигурацию и список созданных машин. """
+        for fsm in self._fsms:
+            fsm.close()
         self._config = None
         self._fsms.clear()
 
     @staticmethod
-    def _parse_raw_config(raw_config: Any) -> 'FsmConfig':
-        """ Парсит произвольный формат конфигурации в StateMachineConfig. """
+    def parse_config(raw_config: Any) -> FsmConfig:
+        """ Приводит конфигурацию любого поддерживаемого вида к FsmConfig. """
+        from ..config_builder import FsmConfigBuilder
         from ..config_parser.parser_factory import ParserFactory
+
+        if isinstance(raw_config, FsmConfig):
+            return raw_config
+        if isinstance(raw_config, FsmConfigBuilder):
+            return raw_config.build()
         return ParserFactory.parse(raw_config)
+
+    def _require_config(self) -> FsmConfig:
+        if self._config is None:
+            raise RuntimeError("FsmManager has no config. Pass it to the constructor or call set_config().")
+        return self._config
+
+    def _enabled_fsms(self) -> Iterator[Fsm]:
+        return (fsm for fsm in self._fsms if fsm.enable)
 
     def __getitem__(self, idx: int) -> Fsm:
         return self._fsms[idx]
+
+    def __iter__(self) -> Iterator[Fsm]:
+        return iter(self._fsms)
 
     def __len__(self) -> int:
         return len(self._fsms)

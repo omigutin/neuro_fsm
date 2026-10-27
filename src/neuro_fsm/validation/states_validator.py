@@ -4,198 +4,91 @@ __all__ = ["StatesValidator"]
 
 from typing import final
 
-from ..configs import ProfileConfig
+from ..configs import ProfileConfig, StateConfig
 
 
 @final
 class StatesValidator:
     """
-        Валидации, связанные с состояниями внутри профилей.
-
-        Политика:
-          - Один и тот же `cls_id` может иметь разные `StateConfig` в разных профилях.
-          - НИКАКИХ кросс-профильных сравнений не выполняется.
-          - Проверяется только внутренняя согласованность каждого профиля по отдельности.
-
-        Что проверяем (выполняемые проверки):
-          1) Согласованность ключей и `cls_id` (`_validate_cls_id_consistency`)
-             - Если у `StateConfig` есть атрибут `cls_id`, он должен совпадать с ключом в `profile.states`.
-             - Цель: поймать рассинхрон между ключом словаря и самим объектом состояния.
-
-          2) Наличие обязательных полей (`_validate_required_fields`)
-             - Требуется поле `name`: непустая строка.
-             - Цель: обеспечить минимально необходимую идентификацию состояния внутри профиля.
-
-          3) Диапазоны числовых значений (`_validate_value_ranges`)
-             - Если присутствует `threshold` → число в диапазоне [0.0, 1.0].
-             - Если присутствует `stable_min_lim` → неотрицательное целое.
-             - Цель: отловить очевидные ошибки конфигурации порогов/лимитов.
-
-          4) Типы служебных полей (`_validate_field_types`)
-             - Если присутствуют: `resettable`, `reset_trigger`, `break_trigger` → должны быть `bool`.
-             - Если присутствует `alias_of` → `int` или `None`.
-             - Цель: обеспечить корректные типы для управляющих флагов/ссылок.
-
-          5) Уникальность имён внутри профиля (`_validate_unique_names_within_profile`)
-             - Поле `name` должно быть уникальным в пределах одного профиля (независимо от `cls_id`).
-             - Цель: исключить неоднозначность ссылок/логов по имени состояния.
-
-        Примечание:
-          - Все проверки, помеченные как «если присутствует», выполняются только при наличии соответствующих атрибутов
-            в `StateConfig`. То есть валидатор не навязывает структуру, но контролирует корректность, если поле задано.
+        Проверки состояний профилей.
+        Внутри профиля:
+            - ключ словаря совпадает с cls_id;
+            - имена уникальны;
+            - типы заданных (не None) полей корректны;
+            - alias_of ссылается на существующее состояние, вложенные алиасы запрещены.
+        Между профилями (только режим "equal"):
+            - одинаковый набор пар (cls_id, name).
+        Диапазоны stable_min_lim и threshold проверяются в StateConfig.
     """
 
     __slots__ = ()
+
+    _BOOL_FIELDS: tuple[str, ...] = ("fiction", "resettable", "reset_trigger", "break_trigger")
 
     def __new__(cls, *a, **k):
         raise TypeError(f"{cls.__name__} is a static namespace; do not instantiate")
 
     @staticmethod
-    def validate(profiles: dict[str, ProfileConfig]) -> None:
-        """ Запускает все проверки, связанные с состояниями профилей (внутрипрофильные). """
-        StatesValidator._validate_cls_id_consistency(profiles)
-        StatesValidator._validate_required_fields(profiles)
-        StatesValidator._validate_value_ranges(profiles)
-        StatesValidator._validate_field_types(profiles)
-        StatesValidator._validate_unique_names_within_profile(profiles)  # ← NEW
-
-    # ---------------- базовая согласованность ----------------
+    def validate(profiles: dict[str, ProfileConfig], equal_states: bool = False) -> None:
+        """ Запускает все проверки состояний. """
+        for name, profile in profiles.items():
+            StatesValidator._validate_profile(name, profile)
+        if equal_states:
+            StatesValidator._validate_equal_sets(profiles)
 
     @staticmethod
-    def _validate_cls_id_consistency(profiles: dict[str, ProfileConfig]) -> None:
-        """
-            Проверяет согласованность ключей словаря `states` и поля `cls_id` в объектах StateConfig.
-            Правила:
-              - Если в StateConfig есть атрибут `cls_id`, он должен совпадать с ключом словаря профиля.
-            Raises:
-                ValueError: если ключ словаря и `sc.cls_id` не совпадают.
-        """
-        for pname, prof in profiles.items():
-            for key_cls_id, sc in prof.states.items():
-                sc_cls_id = getattr(sc, "cls_id", None)
-                if sc_cls_id is not None and sc_cls_id != key_cls_id:
-                    raise ValueError(
-                        f"StateConfig cls_id mismatch in profile '{pname}': "
-                        f"key={key_cls_id}, sc.cls_id={sc_cls_id}."
-                    )
+    def _validate_profile(pname: str, profile: ProfileConfig) -> None:
+        """ Внутрипрофильные проверки. """
+        seen_names: dict[str, int] = {}
+        for key, sc in profile.states.items():
+            if not isinstance(sc, StateConfig):
+                raise ValueError(f"Profile '{pname}': state {key!r} must be StateConfig, got {type(sc)!r}.")
+            if sc.cls_id != key:
+                raise ValueError(f"Profile '{pname}': key {key} differs from state cls_id {sc.cls_id}.")
+            if sc.name in seen_names:
+                raise ValueError(
+                    f"Profile '{pname}': duplicate state name '{sc.name}' "
+                    f"(cls_id={seen_names[sc.name]} and cls_id={key})."
+                )
+            seen_names[sc.name] = key
+            StatesValidator._validate_field_types(pname, sc)
 
-    # ---------------- обязательные поля ----------------
-
-    @staticmethod
-    def _validate_required_fields(profiles: dict[str, ProfileConfig]) -> None:
-        """
-        Проверяет наличие ключевых полей у StateConfig (если они предусмотрены твоей моделью).
-
-        Сейчас проверяется:
-          - `name`: должен существовать и быть непустой строкой.
-
-        Raises:
-            ValueError: если обязательные поля отсутствуют или некорректны.
-        """
-        for pname, prof in profiles.items():
-            for cls_id, sc in prof.states.items():
-                if not hasattr(sc, "name"):
-                    raise ValueError(
-                        f"StateConfig missing required field 'name' in profile '{pname}', cls_id={cls_id}."
-                    )
-                name = getattr(sc, "name")
-                if not isinstance(name, str) or not name.strip():
-                    raise ValueError(
-                        f"StateConfig field 'name' must be a non-empty string "
-                        f"(profile='{pname}', cls_id={cls_id})."
-                    )
-
-    # ---------------- диапазоны значений ----------------
+        for sc in profile.states.values():
+            if sc.alias_of is None:
+                continue
+            base = profile.states.get(sc.alias_of)
+            if base is None:
+                raise ValueError(f"Profile '{pname}': {sc} alias_of={sc.alias_of} points to unknown state.")
+            if base.alias_of is not None:
+                raise ValueError(f"Profile '{pname}': {sc} points to alias {base}. Nested aliases are not allowed.")
 
     @staticmethod
-    def _validate_value_ranges(profiles: dict[str, ProfileConfig]) -> None:
-        """
-            Проверяет допустимые диапазоны числовых полей (только если поля присутствуют).
-            Проверки:
-              - `threshold` ∈ [0.0, 1.0]
-              - `stable_min_lim` ≥ 0 (целое)
-        """
-        for pname, prof in profiles.items():
-            for cls_id, sc in prof.states.items():
-                if hasattr(sc, "threshold"):
-                    thr = getattr(sc, "threshold")
-                    if not isinstance(thr, (int, float)) or not (0.0 <= float(thr) <= 1.0):
-                        raise ValueError(
-                            f"StateConfig 'threshold' must be within [0.0, 1.0] "
-                            f"(profile='{pname}', cls_id={cls_id}, value={thr!r})."
-                        )
-                if hasattr(sc, "stable_min_lim"):
-                    sml = getattr(sc, "stable_min_lim")
-                    if not isinstance(sml, int) or sml < 0:
-                        raise ValueError(
-                            f"StateConfig 'stable_min_lim' must be a non-negative integer "
-                            f"(profile='{pname}', cls_id={cls_id}, value={sml!r})."
-                        )
-
-    # ---------------- типы полей ----------------
+    def _validate_field_types(pname: str, sc: StateConfig) -> None:
+        """ Проверка типов заданных полей. """
+        for field_name in StatesValidator._BOOL_FIELDS:
+            value = getattr(sc, field_name)
+            if value is not None and not isinstance(value, bool):
+                raise ValueError(f"Profile '{pname}': {sc} field '{field_name}' must be bool, got {value!r}.")
+        checks = (
+            ("stable_min_lim", sc.stable_min_lim, int),
+            ("alias_of", sc.alias_of, int),
+            ("threshold", sc.threshold, (int, float)),
+        )
+        for field_name, value, expected in checks:
+            if value is not None and (isinstance(value, bool) or not isinstance(value, expected)):
+                raise ValueError(f"Profile '{pname}': {sc} field '{field_name}' has invalid type: {value!r}.")
+        if sc.full_name is not None and not isinstance(sc.full_name, str):
+            raise ValueError(f"Profile '{pname}': {sc} field 'full_name' must be str, got {sc.full_name!r}.")
 
     @staticmethod
-    def _validate_field_types(profiles: dict[str, ProfileConfig]) -> None:
-        """
-            Проверяет типы некоторых булевых/служебных полей (если они присутствуют).
-            Проверки:
-              - `resettable`  -> bool
-              - `reset_trigger` -> bool
-              - `break_trigger` -> bool
-              - `alias_of` -> int | None  (если есть и не None)
-        """
-        for pname, prof in profiles.items():
-            for cls_id, sc in prof.states.items():
-                if hasattr(sc, "resettable"):
-                    v = getattr(sc, "resettable")
-                    if not isinstance(v, bool):
-                        raise ValueError(
-                            f"StateConfig 'resettable' must be bool "
-                            f"(profile='{pname}', cls_id={cls_id}, value={v!r})."
-                        )
-                if hasattr(sc, "reset_trigger"):
-                    v = getattr(sc, "reset_trigger")
-                    if not isinstance(v, bool):
-                        raise ValueError(
-                            f"StateConfig 'reset_trigger' must be bool "
-                            f"(profile='{pname}', cls_id={cls_id}, value={v!r})."
-                        )
-                if hasattr(sc, "break_trigger"):
-                    v = getattr(sc, "break_trigger")
-                    if not isinstance(v, bool):
-                        raise ValueError(
-                            f"StateConfig 'break_trigger' must be bool "
-                            f"(profile='{pname}', cls_id={cls_id}, value={v!r})."
-                        )
-                if hasattr(sc, "alias_of"):
-                    v = getattr(sc, "alias_of")
-                    if v is not None and not isinstance(v, int):
-                        raise ValueError(
-                            f"StateConfig 'alias_of' must be int or None "
-                            f"(profile='{pname}', cls_id={cls_id}, value={v!r})."
-                        )
-
-    # ---------------- уникальность имён внутри профиля ----------------
-
-    @staticmethod
-    def _validate_unique_names_within_profile(profiles: dict[str, ProfileConfig]) -> None:
-        """
-            Запрещает дубли `name` внутри одного профиля (независимо от cls_id).
-            Raises:
-                ValueError: если обнаружены повторяющиеся имена состояний внутри профиля.
-        """
-        for pname, prof in profiles.items():
-            seen: dict[str, int] = {}
-            for cls_id, sc in prof.states.items():
-                name = getattr(sc, "name", None)
-                if not isinstance(name, str):
-                    # Отловится в _validate_required_fields; здесь просто пропустим.
-                    continue
-                if name in seen:
-                    prev_cls_id = seen[name]
-                    raise ValueError(
-                        f"Duplicate state name '{name}' within profile '{pname}' "
-                        f"(cls_id={prev_cls_id} and cls_id={cls_id}). "
-                        "State names must be unique within a profile."
-                    )
-                seen[name] = cls_id
+    def _validate_equal_sets(profiles: dict[str, ProfileConfig]) -> None:
+        """ В режиме "equal" все профили имеют одинаковый набор (cls_id, name). """
+        reference_name, reference = next(iter(profiles.items()))
+        reference_set = {(s.cls_id, s.name) for s in reference.states.values()}
+        for name, profile in profiles.items():
+            current = {(s.cls_id, s.name) for s in profile.states.values()}
+            if current != reference_set:
+                raise ValueError(
+                    f"States mode 'equal': profile '{name}' states differ from profile '{reference_name}': "
+                    f"{sorted(current ^ reference_set)}."
+                )

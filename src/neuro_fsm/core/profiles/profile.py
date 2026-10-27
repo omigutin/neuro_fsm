@@ -1,22 +1,18 @@
 __all__ = ['Profile']
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from ..states import State, StateTuple, StateDict, StateTupleTuple
 from ..counters import StableStateCounters
 from ..history import StableStateHistory
 
-if TYPE_CHECKING:
-    from ...history_writer import StableHistoryWriter
 
 class Profile:
     """
-        Рабочая единица профиля в машине состояний.
-        Содержит:
-            - Ссылки на State (states, init_states, default_states, expected_sequences)
-            - Счётчики состояний
-            - Историю состояний
+        Рабочий профиль машины состояний: состояния, счётчики и история стабильных состояний.
+        Все профили FSM получают каждое входное состояние параллельно; результат формирует активный.
     """
+
     def __init__(
             self,
             name: str,
@@ -25,29 +21,29 @@ class Profile:
             default_states: StateTuple,
             expected_sequences: StateTupleTuple,
             description: str = ""
-        ) -> None:
-        self._name: str  = name
+    ) -> None:
+        if not init_states:
+            raise ValueError(f"[Profile] Profile '{name}' must have at least one init state")
+        self._name: str = name
         self._description: str = description
-
-        self._states: StateDict = states  # dict[cls_id, State]
+        self._states: StateDict = states
         self._init_states: StateTuple = init_states
         self._default_states: StateTuple = default_states
         self._expected_sequences: StateTupleTuple = expected_sequences
-        self._cur_state: State = self._init_states[-1]
-
+        self._cur_state: State = init_states[-1]
         self._counters = StableStateCounters(states)
         self._history = StableStateHistory(expected_sequences)
-        self._add_init_states_to_history()
+        self._history.add(*self._unique_init_states())
 
-    def set_cur_state_by_id(self, cls_id: int) -> None:
-        self._cur_state = self._states[cls_id]
-
-    def increment_counter(self) -> None:
-        self._counters.increment(self._cur_state.cls_id)
+    # ---------------- свойства ----------------
 
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def description(self) -> str:
+        return self._description
 
     @property
     def cur_state(self) -> State:
@@ -69,74 +65,92 @@ class Profile:
     def expected_sequences(self) -> StateTupleTuple:
         return self._expected_sequences
 
-    def is_cur_state_resetter(self) -> bool:
-        return self._cur_state.is_resetter
+    # ---------------- шаг обработки ----------------
 
-    def is_cur_state_breaker(self) -> bool:
-        return self._cur_state.is_breaker
+    def resolve_state(self, cls_id: Optional[int]) -> State:
+        """
+            Возвращает состояние профиля по cls_id.
+            Для None или неизвестного cls_id — последнее состояние по умолчанию.
+            Raises:
+                KeyError: если cls_id неизвестен, а состояния по умолчанию не заданы.
+        """
+        state = self._states.get(cls_id) if cls_id is not None else None
+        if state is not None:
+            return state
+        if self._default_states:
+            return self._default_states[-1]
+        raise KeyError(f"Unknown cls_id={cls_id!r} in profile '{self._name}' and no default states defined")
 
-    def is_state_stable(self, cur_state: Optional[State] = None) -> bool:
-        """ Определяет стабильное ли состояние. Если stable_min_lim не задано, то состояние не может быть стабильным """
-        state = cur_state if cur_state else self._cur_state
-        if state.stable_min_lim and state.stable_min_lim >= 0:
-            return self._counters.get(state.cls_id) == state.stable_min_lim
-        else:
+    def register_state(self, cls_id: Optional[int]) -> State:
+        """ Делает состояние текущим и увеличивает его счётчик. """
+        self._cur_state = self.resolve_state(cls_id)
+        self._counters.increment(self._cur_state.cls_id)
+        return self._cur_state
+
+    def is_state_stable(self, state: Optional[State] = None) -> bool:
+        """ True, если счётчик состояния ровно достиг stable_min_lim (событие стабильности). """
+        state = state or self._cur_state
+        return state.can_be_stable and self._counters.get(state.cls_id) == state.stable_min_lim
+
+    def add_cur_state_to_history(self) -> bool:
+        """ Добавляет текущее состояние в историю, если оно стабильно и отличается от последнего. """
+        state = self._cur_state
+        if state.stable_min_lim is None or self._counters.get(state.cls_id) < state.stable_min_lim:
             return False
+        if not self._history.is_different_from_last(state):
+            return False
+        self._history.add(state)
+        return True
+
+    def is_expected_seq_valid(self) -> bool:
+        """ True, если история завершилась одной из ожидаемых последовательностей. """
+        return self._history.is_valid()
+
+    def is_expected_seq_possible(self) -> bool:
+        """ True, если ожидаемая последовательность ещё может завершиться. """
+        return self._history.is_possible()
+
+    # ---------------- счётчики и история ----------------
 
     def get_counter_by_cls_id(self, cls_id: int) -> int:
-        """ Возвращает счётчик состояния, найденного по cls_id. """
+        """ Счётчик состояния по cls_id. """
         return self._counters.get(cls_id)
 
     def get_counters(self) -> dict[State, int]:
-        """ Возвращает словарь {State: count}, что удобно для логирования и отображения. """
-        counters = self._counters.as_dict()
-        return {self._states[cls_id]: count for cls_id, count in counters.items()}
+        """ Снимок счётчиков {State: count}. """
+        return {self._states[cls_id]: count for cls_id, count in self._counters.as_dict().items()}
 
-    def get_history(self) -> list[State]:
+    def get_history(self) -> tuple[State, ...]:
+        """ Снимок истории стабильных состояний. """
         return self._history.records
-
-    def is_expected_seq_valid(self, writer: "StableHistoryWriter") -> bool:
-        if self._history.is_valid():
-            writer.write_action(
-                cur_state=self.cur_state,
-                count=self.get_counter_by_cls_id(self.cur_state.cls_id),
-                action="EXPECTED_SEQ_DONE",
-                profile=self
-            )
-            return True
-        return False
-
-    def add_cur_state_to_history(self) -> bool:
-        cur_state_count = self._counters.get(self._cur_state.cls_id)
-        if self._history.is_different_from_last(self._cur_state) and cur_state_count >= self._cur_state.stable_min_lim:
-            self._history.add(self._cur_state)
-            return True
-        return False
 
     def reset_counters(self, only_resettable: bool, except_cur_state: bool) -> None:
         """
-            Сбрасывает счётчики состояний, за исключением указанных.
+            Сбрасывает счётчики состояний.
             Args:
-                only_resettable (bool): Если True — сбрасываются только состояния с флагом is_resettable.
-                                        Если False — сбрасываются все состояния, кроме указанных.
-                except_cur_state (bool): Сбрасывать ли счётчик текущего состояния.
+                only_resettable: сбрасывать только состояния с флагом is_resettable.
+                except_cur_state: не сбрасывать счётчик текущего состояния.
         """
         for state in self._states.values():
-            is_excepted = except_cur_state and state == self._cur_state
-            if not is_excepted and (not only_resettable or state.is_resettable):
-                self._counters.reset(state.cls_id)
+            if except_cur_state and state.cls_id == self._cur_state.cls_id:
+                continue
+            if only_resettable and not state.is_resettable:
+                continue
+            self._counters.reset(state.cls_id)
 
-    def reset_to_init_state(self):
-        self.reset_counters(only_resettable=False, except_cur_state=False)
+    def reset_to_init_state(self) -> None:
+        """ Сбрасывает счётчики и историю к стартовому состоянию. Текущее состояние не меняется. """
+        self._counters.reset_all()
         self._history.clear()
-        self._add_init_states_to_history()
+        self._history.add(*self._unique_init_states())
 
-    def _add_init_states_to_history(self) -> None:
-        """Добавляет состояния из _init_states в историю, исключая уже присутствующие."""
-        existing_ids = {s.cls_id for s in self._history}
-        new_states = [s for s in self._init_states if s.cls_id not in existing_ids]
-        if new_states:
-            self._history.add(*new_states)
+    def _unique_init_states(self) -> list[State]:
+        """ Стартовые состояния без подряд идущих повторов. """
+        result: list[State] = []
+        for state in self._init_states:
+            if not result or result[-1].cls_id != state.cls_id:
+                result.append(state)
+        return result
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Profile {self._name} ({len(self._states)} states)>"

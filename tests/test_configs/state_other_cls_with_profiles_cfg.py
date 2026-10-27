@@ -1,18 +1,18 @@
+""" Формат с профилями: состояния и ссылки на них — члены Enum (по имени). """
+from neuro_fsm.models import ProfileSwitcherStrategies
 from tests.test_configs.classes import NeuroClasses
 
 
 class StateOtherClsWithProfilesConfig:
-    from neuro_fsm.models import ProfileSwitcherStrategies
-
     ENABLE = True
     PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.BY_MATCH
-    STATES = [NeuroClasses.UNDEFINED, NeuroClasses.EMPTY, NeuroClasses.FULL, NeuroClasses.UNKNOWN.name]
+    DEFAULT_PROFILE = "EMPTY_THEN_FILL"
+    STATES = [NeuroClasses.UNDEFINED, NeuroClasses.EMPTY, NeuroClasses.FULL, NeuroClasses.UNKNOWN]
 
     STATE_PROFILES = (
         {
             'name': "EMPTY_THEN_FILL",
             'expected_sequences': [
-                [NeuroClasses.EMPTY, NeuroClasses.FULL, NeuroClasses.EMPTY],
                 [NeuroClasses.EMPTY, NeuroClasses.FULL, NeuroClasses.EMPTY],
             ],
             'states': {
@@ -26,7 +26,6 @@ class StateOtherClsWithProfilesConfig:
         {
             'name': "FULL_FIRST",
             'expected_sequences': (
-                (NeuroClasses.EMPTY, NeuroClasses.UNKNOWN, NeuroClasses.FULL, NeuroClasses.EMPTY),
                 (NeuroClasses.EMPTY, NeuroClasses.UNKNOWN, NeuroClasses.FULL, NeuroClasses.EMPTY),
             ),
             'states': {

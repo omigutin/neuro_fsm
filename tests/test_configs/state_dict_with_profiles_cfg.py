@@ -1,9 +1,9 @@
+""" Формат с профилями: состояния — dict, переопределения — по имени. """
+from neuro_fsm.models import ProfileSwitcherStrategies, ProfileNames
 from tests.test_configs.classes import NeuroClasses
 
 
 class StateDictWithProfilesConfig:
-    from neuro_fsm.models import ProfileSwitcherStrategies, ProfileNames
-
     ENABLE = True
 
     STATES = (
@@ -18,7 +18,6 @@ class StateDictWithProfilesConfig:
             'name': ProfileNames.EMPTY_THEN_FILL,
             'expected_sequences': (
                 (NeuroClasses.EMPTY.name, NeuroClasses.FULL.name, NeuroClasses.EMPTY.name),
-                (NeuroClasses.EMPTY.name, NeuroClasses.FULL.name, NeuroClasses.EMPTY.name),
             ),
             'states': {
                 NeuroClasses.EMPTY.name: {'stable_min_lim': 15, 'resettable': True, 'reset_trigger': True},
@@ -31,7 +30,6 @@ class StateDictWithProfilesConfig:
         {
             'name': "FULL_FIRST",
             'expected_sequences': (
-                (NeuroClasses.EMPTY.name, NeuroClasses.UNKNOWN.name, NeuroClasses.FULL.name, NeuroClasses.EMPTY.name),
                 (NeuroClasses.EMPTY.name, NeuroClasses.UNKNOWN.name, NeuroClasses.FULL.name, NeuroClasses.EMPTY.name),
             ),
             'states': {
@@ -47,4 +45,4 @@ class StateDictWithProfilesConfig:
 
     PROFILE_SWITCHER_STRATEGY = ProfileSwitcherStrategies.MIXED
 
-    DEFAULT_PROFILE = ProfileNames.SINGLE
+    DEFAULT_PROFILE = ProfileNames.EMPTY_THEN_FILL

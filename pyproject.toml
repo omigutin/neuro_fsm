@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "neuro-fsm"
-version = "0.1.1"
+version = "0.2.0"
 description = "NeuroFSM is a lightweight finite state machine framework tailored for neural network inference pipelines. It helps structure and track transitions between high-level states predicted by AI models in real-time or batch processing systems."
 authors = ["migutin83 <migutin83@yandex.ru>"]
 readme = "README.md"
@@ -29,6 +29,10 @@ pytest = "^8.0"
 [tool.poetry.urls]
 Homepage = "https://github.com/omigutin/neuro_fsm"
 Issues = "https://github.com/users/omigutin/projects/3"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

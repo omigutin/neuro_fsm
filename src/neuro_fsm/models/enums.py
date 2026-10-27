@@ -1,18 +1,37 @@
+from __future__ import annotations
+
 __all__ = ['ProfileSwitcherStrategies', 'ProfileNames']
 
 from enum import Enum, auto
+from typing import Union
 
 
 class ProfileSwitcherStrategies(Enum):
-    """ Стратегии переключения профиля. """
-    SINGLE = auto()            # Единственный профиль. Переключения не происходит
-    BY_MAPPED_ID = auto()      # Профиль определяется через карту соответствия id → профиль
-    BY_MATCH = auto()          # Если какой-либо профиль завершил последовательность
-    BY_EXCLUSION = auto()      # Если все профили, кроме одного, точно невалидны
-    MIXED = auto()             # Сначала match, иначе если остался один возможный — активируем
+    """ Стратегии автоматического переключения активного профиля. """
+    SINGLE = auto()            # Автоматического переключения нет (только вручную по имени)
+    BY_MAPPED_ID = auto()      # Профиль выбирается вручную по внешнему id (switch_profile_by_pid)
+    BY_MATCH = auto()          # Переключение на профиль, завершивший ожидаемую последовательность
+    BY_EXCLUSION = auto()      # Переключение, если совпадение возможно только у одного профиля
+    MIXED = auto()             # Сначала BY_MATCH, затем BY_EXCLUSION
+
+    @classmethod
+    def parse(cls, value: Union[ProfileSwitcherStrategies, Enum, str, None]) -> ProfileSwitcherStrategies:
+        """ Приводит Enum / имя стратегии (без учёта регистра) / None (SINGLE) к стратегии. """
+        if value is None:
+            return cls.SINGLE
+        if isinstance(value, cls):
+            return value
+        name = value.name if isinstance(value, Enum) else value
+        if isinstance(name, str):
+            try:
+                return cls[name.strip().upper()]
+            except KeyError:
+                pass
+        raise ValueError(f"Unknown profile switcher strategy: {value!r}")
 
 
 class ProfileNames(str, Enum):
+    """ Предопределённые имена профилей (можно использовать и произвольные строки). """
     DEFAULT = "default"
     SINGLE = "single"
     EMPTY_THEN_FILL = "empty_then_fill"
